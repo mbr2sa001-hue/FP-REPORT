@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+<meta charset="UTF-8">
+<title>CMP / FP Implementation Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1f2b26;
+    --paper:#faf8f4;
+    --paper-2:#f1eee6;
+    --line:#c9c2b2;
+    --moss:#3d5c46;
+    --moss-deep:#26392c;
+    --clay:#a3492f;
+    --gold:#b48a3f;
+    --muted:#6b6459;
+    --white:#fffef9;
+    --radius:2px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper-2);
+    color:var(--ink);
+    font-family:'Khmer OS Siemreap','Battambang',serif;
+    line-height:1.5;
+  }
+  .khm{font-family:'Khmer OS Siemreap','Battambang', sans-serif;}
+  h1,h2,h3{font-family:'Khmer OS Siemreap','Battambang', serif; margin:0;}
+  .app{max-width:980px;margin:0 auto;padding:0 20px 80px;}
+
+  /* HEADER */
+  .masthead{
+    background:var(--moss-deep);
+    color:var(--white);
+    padding:36px 24px 28px;
+    margin-bottom:0;
+    position:relative;
+  }
+  .masthead::after{
+    content:"";
+    display:block;
+    height:6px;
+    background:repeating-linear-gradient(90deg,var(--gold) 0 18px, transparent 18px 26px);
+    margin-top:22px;
+    opacity:.85;
+  }
+  .masthead-inner{max-width:980px;margin:0 auto;padding:0 20px;}
+  .updated{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.04em;color:#cfd9d0;text-align:right;}
+  .masthead h1{font-size:26px;font-weight:700;line-height:1.35;margin-top:8px;}
+  .masthead .khmer-title{display:block;font-family:'Khmer OS Siemreap','Battambang',serif;font-size:19px;font-weight:600;margin-bottom:4px;color:#eef2ea;}
+  .masthead .sub{color:#b8c4ba;font-size:13px;margin-top:10px;max-width:640px;}
+
+  /* PROGRESS RAIL */
+  .rail{
+    display:flex;
+    gap:0;
+    background:var(--moss);
+    overflow-x:auto;
+    position:sticky;
+    top:0;
+    z-index:50;
+    box-shadow:0 2px 10px rgba(0,0,0,.15);
+  }
+  .rail-inner{display:flex;max-width:980px;margin:0 auto;width:100%;}
+  .rail button{
+    flex:1 0 auto;
+    background:transparent;
+    border:none;
+    color:#cfe0d3;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    padding:10px 10px;
+    cursor:pointer;
+    border-bottom:3px solid transparent;
+    white-space:nowrap;
+  }
+  .rail button.active{color:#fff;border-bottom-color:var(--gold);background:rgba(255,255,255,.06);}
+  .rail button:hover{background:rgba(255,255,255,.08);}
+
+  /* SECTIONS */
+  section.card{
+    background:var(--white);
+    border:1px solid var(--line);
+    border-top:none;
+    padding:26px 28px 30px;
+  }
+  section.card + section.card{border-top:1px solid var(--line);}
+  .app > section.card:first-of-type{border-top:1px solid var(--line);}
+
+  .sec-num{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--white);
+    background:var(--clay);
+    width:26px;height:26px;
+    border-radius:50%;
+    margin-right:10px;
+    flex:none;
+  }
+  .sec-head{display:flex;align-items:baseline;gap:2px;margin-bottom:4px;}
+  .sec-head h2{font-size:18px;color:var(--moss-deep);}
+  .sec-head .khmer{font-family:'Khmer OS Siemreap','Battambang',serif;}
+  .sec-desc{color:var(--muted);font-size:13px;margin:4px 0 20px 36px;}
+
+  .field-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px 20px;margin-left:36px;}
+  .field-grid.cols-3{grid-template-columns:repeat(3,1fr);}
+  .field-grid.cols-4{grid-template-columns:repeat(4,1fr);}
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field.span-2{grid-column:span 2;}
+  .field.span-all{grid-column:1/-1;}
+  label{font-size:12.5px;color:var(--moss-deep);font-weight:600;}
+  label .en{font-weight:400;color:var(--muted);font-style:italic;}
+  input[type=text], input[type=number], textarea, select{
+    font-family:'Khmer OS Siemreap','Battambang',serif;
+    font-size:14px;
+    padding:8px 10px;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    background:var(--paper);
+    color:var(--ink);
+  }
+  input:focus, textarea:focus, select:focus{
+    outline:2px solid var(--gold);
+    outline-offset:0;
+    background:var(--white);
+  }
+  textarea{resize:vertical;min-height:70px;font-size:13.5px;line-height:1.55;}
+  textarea.tall{min-height:120px;}
+
+  .check-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;margin-left:36px;}
+  .check-grid.cols-1{grid-template-columns:1fr;}
+  .chk{display:flex;align-items:flex-start;gap:8px;font-size:13.5px;padding:4px 0;}
+  .chk input{margin-top:3px;accent-color:var(--moss);width:15px;height:15px;flex:none;}
+  .chk .txt{line-height:1.4;}
+  .chk .en{color:var(--muted);font-size:12px;}
+  .other-inline{margin-left:23px;margin-top:2px;}
+  .other-inline input{width:100%;}
+
+  .subhead{margin:22px 0 10px 36px;font-size:13px;font-weight:600;color:var(--clay);text-transform:uppercase;letter-spacing:.03em;}
+
+  .ben-table{margin-left:36px;border:1px solid var(--line);}
+  .ben-row{display:grid;grid-template-columns:1.6fr 1fr 1fr;border-bottom:1px solid var(--line);}
+  .ben-row:last-child{border-bottom:none;}
+  .ben-row > div{padding:8px 10px;display:flex;align-items:center;}
+  .ben-row .rowlabel{background:var(--paper-2);font-size:13px;font-weight:600;}
+  .ben-row input{width:100%;}
+  .ben-row input.input-invalid{border-color:var(--clay);background:#fbeee9;outline:1px solid var(--clay);}
+  .ben-warning{
+    margin:10px 0 0 36px;padding:10px 14px;background:#fbeee9;border:1px solid var(--clay);
+    border-radius:var(--radius);color:var(--clay);font-size:12.5px;line-height:1.6;
+  }
+  .ben-head{background:var(--moss-deep);color:#fff;font-size:12px;font-weight:600;}
+
+  .datebox{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  .datebox input{width:56px;text-align:center;}
+  .datebox input.year{width:70px;}
+  .datebox span{font-size:12px;color:var(--muted);}
+
+  input[readonly]{background:var(--paper-2);color:var(--moss-deep);font-weight:600;}
+  .duration-hint{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:2px;}
+
+  .fin-add-row{margin:10px 0 0;text-align:left;}
+  .fin-add-row button{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;padding:7px 14px;
+    border:1px dashed var(--moss);background:transparent;color:var(--moss-deep);
+    border-radius:var(--radius);cursor:pointer;
+  }
+  .fin-add-row button:hover{background:var(--paper-2);}
+  table.fin td.rowaction{text-align:center;border:none;background:transparent;padding:2px;}
+  .row-del-btn{
+    border:none;background:transparent;color:var(--clay);font-size:14px;cursor:pointer;
+    width:22px;height:22px;line-height:1;border-radius:50%;
+  }
+  .row-del-btn:hover{background:#fbeee9;}
+  @media print{ table.fin th.actioncol, table.fin td.rowaction{display:none;} }
+
+  .fin-table-wrap{margin-left:36px;overflow-x:auto;}
+  table.fin{width:100%;border-collapse:collapse;font-size:12.5px;min-width:760px;}
+  table.fin th, table.fin td{border:1px solid var(--line);padding:6px;}
+  table.fin thead th{background:var(--moss-deep);color:#fff;font-size:11.5px;font-weight:600;text-align:center;}
+  table.fin td input{width:100%;border:none;background:transparent;padding:4px;font-size:12.5px;}
+  table.fin td input:focus{background:var(--paper);outline:1px solid var(--gold);}
+  table.fin td.num{text-align:right;}
+  table.fin tfoot td{background:var(--paper-2);font-weight:700;}
+  .rowno{text-align:center;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+
+  .actions{display:flex;justify-content:space-between;margin-left:36px;margin-top:24px;}
+  .btn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    letter-spacing:.02em;
+    padding:10px 20px;
+    border-radius:var(--radius);
+    border:1px solid var(--moss-deep);
+    background:transparent;
+    color:var(--moss-deep);
+    cursor:pointer;
+  }
+  .btn.primary{background:var(--moss-deep);color:#fff;}
+  .btn.primary:hover{background:var(--moss);}
+  .btn:hover{background:var(--paper-2);}
+  .btn.clay{border-color:var(--clay);color:var(--clay);}
+  .btn.clay:hover{background:#fbeee9;}
+
+  footer.appfoot{
+    text-align:center;padding:26px 10px 0;color:var(--muted);font-size:11.5px;font-family:'IBM Plex Mono',monospace;
+  }
+
+  /* ===== REPORT / PRINT VIEW ===== */
+  #reportView{display:none;background:#fff;}
+  #reportView.show{display:block;}
+  #formView.hide{display:none;}
+  .report-toolbar{
+    max-width:980px;margin:0 auto;padding:14px 20px;
+    display:flex;gap:10px;justify-content:flex-end;background:var(--paper-2);
+    position:sticky;top:0;z-index:60;border-bottom:1px solid var(--line);
+  }
+  .doc{max-width:900px;margin:0 auto;padding:36px 44px;background:#fff;font-size:12.5px;color:#111;}
+  .doc table{width:100%;border-collapse:collapse;margin-bottom:14px;}
+  .doc table, .doc th, .doc td{border:1px solid #333;}
+  .doc td, .doc th{padding:6px 8px;vertical-align:top;}
+  .doc .doctitle{text-align:center;font-weight:700;font-size:15px;text-decoration:underline;margin-bottom:14px;}
+  .doc .updatedline{text-align:right;font-size:10.5px;font-style:italic;margin-bottom:4px;}
+  .doc .sect-title{font-weight:700;text-decoration:underline;margin:18px 0 8px;font-size:13px;}
+  .doc .labelcell{font-weight:700;background:#f4f4f0;width:26%;}
+  .doc .filled{font-weight:600;color:#14321f;border-bottom:1px dotted #999;padding:0 2px;}
+  .doc .empty-dots{color:#888;}
+  .doc .q{font-weight:700;margin-top:14px;}
+  .doc .a{border-bottom:1px solid #999;min-height:60px;margin-top:4px;padding:6px 2px;white-space:pre-wrap;}
+  .doc .checkline{margin:2px 0;}
+  .doc .checkmark{font-weight:700;}
+  .doc .page-break{page-break-before:always;}
+  .doc .sig-grid{display:flex;justify-content:space-between;margin-top:30px;font-size:12px;}
+  .doc .footline{text-align:center;font-size:10px;color:#555;margin-top:26px;border-top:1px solid #ccc;padding-top:6px;}
+
+  @media print{
+    .rail, .masthead, .report-toolbar, footer.appfoot, #formView{display:none !important;}
+    body{background:#fff;}
+    .doc{padding:0;max-width:100%;}
+  }
+  @media (max-width:720px){
+    .field-grid, .field-grid.cols-3, .field-grid.cols-4{grid-template-columns:1fr;margin-left:0;}
+    .check-grid{grid-template-columns:1fr;margin-left:0;}
+    .sec-desc, .subhead, .ben-table, .fin-table-wrap, .actions{margin-left:0;}
+    section.card{padding:20px 16px;}
+  }
+</style>
+</head>
+<body>
+
+<div id="formView">
+  <div class="masthead">
+    <div class="masthead-inner">
+      <div class="updated">Updated: 12-Dec-2022 &nbsp;·&nbsp; digital form</div>
+      <span class="khmer-title">របាយការណ៍អនុវត្តន៍គម្រោងខ្នាតតូចសម្រាប់ភាពជាដៃគូ</span>
+      <h1>CMP / FP Implementation Report</h1>
+      <div class="sub">Fill in each section below, then generate a printable, filled report matching the original form layout — ready to save as PDF or print.</div>
+    </div>
+  </div>
+
+  <nav class="rail" id="rail"><div class="rail-inner" id="railInner"></div></nav>
+
+  <div class="app" id="sections"></div>
+
+  <footer class="appfoot">CMP / FP Implementation Report — digital filling tool</footer>
+</div>
+
+<div id="reportView">
+  <div class="report-toolbar">
+    <button class="btn" onclick="backToForm()">&larr; Back to edit</button>
+    <button class="btn primary" onclick="window.print()">Print / Save as PDF</button>
+  </div>
+  <div class="doc" id="docOutput"></div>
+</div>
+
+<script>
+/* ---------------------------------------------------------
+   SECTION DEFINITIONS
+--------------------------------------------------------- */
+const sections = [
+{
+  id:"general", num:1,
+  title:"General Information", khmer:"ព័ត៌មានទូទៅ",
+  desc:"Location and the type of technical project this report covers.",
+  render: () => `
+    <div class="field-grid cols-4">
+      <div class="field"><label>ខេត្ត <span class="en">Province</span></label>
+        <select id="province">
+          <option value="បន្ទាយមានជ័យ">ខេត្តបន្ទាយមានជ័យ / Banteay Meanchey</option>
+        </select>
+      </div>
+      <div class="field"><label>ស្រុក <span class="en">District</span></label>
+        <select id="district">
+          <option value="មង្គលបុរី">ស្រុកមង្គលបុរី / Mongkol Borei</option>
+        </select>
+      </div>
+      <div class="field"><label>ឃុំ <span class="en">Commune</span></label>
+        <select id="commune" onchange="updateVillageOptions()">
+          <option value="បន្ទាយនាង">ឃុំបន្ទាយនាង / Banteay Neang</option>
+          <option value="តាឡំ">ឃុំតាឡំ / Ta Lam</option>
+          <option value="ស្រះរាំង">ឃុំស្រះរាំង / Srah Reang</option>
+        </select>
+      </div>
+      <div class="field"><label>ភូមិ <span class="en">Village</span></label>
+        <select id="village"></select>
+      </div>
+    </div>
+    <div class="subhead">គម្រោងបច្ចេកទេស / Technical project type</div>
+    <div class="check-grid cols-1">
+      <label class="chk"><input type="checkbox" id="pt_ce"><span class="txt">គម្រោងខ្នាតតូចរបស់សហគមន៍ <span class="en">/ CE's community micro-project (Output Code 80.02)</span></span></label>
+      <label class="chk"><input type="checkbox" id="pt_nutrition"><span class="txt">គម្រោងដៃគូហិរញ្ញវត្ថុនៃគម្រោងបច្ចេកទេសអាហារូបត្ថម្ភ <span class="en">/ Financial-partner project of the Nutrition TP</span></span></label>
+      <label class="chk"><input type="checkbox" id="pt_education"><span class="txt">គម្រោងដៃគូហិរញ្ញវត្ថុនៃគម្រោងបច្ចេកទេសអប់រំ <span class="en">/ Financial-partner project of the Education TP</span></span></label>
+      <label class="chk"><input type="checkbox" id="pt_cp"><span class="txt">គម្រោងដៃគូហិរញ្ញវត្ថុនៃគម្រោងបច្ចេកទេសការការពារកុមារ និងការចូលរួម <span class="en">/ Financial-partner project of the Child Protection & Participation TP</span></span></label>
+      <label class="chk"><input type="checkbox" id="pt_drm"><span class="txt">គម្រោងដៃគូហិរញ្ញវត្ថុនៃគម្រោងគ្រប់គ្រងគ្រោះមហន្តរាយ <span class="en">/ Financial-partner project of the DRM TP</span></span></label>
+      <label class="chk"><input type="checkbox" id="pt_other"><span class="txt">គម្រោងដៃគូហិរញ្ញវត្ថុនៃគម្រោងផ្សេងពីនេះ សូមបញ្ជាក់ <span class="en">/ Other financial-partner project (please specify)</span></span></label>
+    </div>
+    <div class="other-inline"><input type="text" id="pt_other_txt" placeholder="សូមបញ្ជាក់ / please specify"></div>
+    <div class="field-grid" style="margin-top:16px;">
+      <div class="field span-2"><label>Output Code <span class="en">(ស្រង់ចេញពី Log-frame / from the Log-frame)</span></label><input type="text" id="outputCode"></div>
+    </div>
+  `
+},
+{
+  id:"group", num:1,
+  title:"Group Information", khmer:"ព័ត៌មានក្រុម",
+  desc:"Details identifying the implementing group.",
+  render: () => `
+    <div class="field-grid">
+      <div class="field span-2">
+        <label>ជ្រើសរើសក្រុមពីបញ្ជីដៃគូ <span class="en">Select group (from partner list)</span></label>
+        <select id="groupNameSelect" onchange="onGroupSelect()">
+          <option value="">-- ជ្រើសរើសក្រុម / Select a group --</option>
+          <option value="__other__">ផ្សេងៗ / Other (មិនមានក្នុងបញ្ជី — សូមបញ្ចូលដោយដៃ / type manually)</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-grid">
+      <div class="field"><label>ឈ្មោះក្រុម <span class="en">Group Name</span></label><input type="text" id="groupName"></div>
+      <div class="field"><label>លេខសំគាល់ក្រុម <span class="en">Group ID</span></label><input type="text" id="groupId"></div>
+    </div>
+    <div class="subhead">ប្រភេទក្រុម / Group Type</div>
+    <div class="check-grid">
+      <label class="chk"><input type="radio" name="groupType" id="gt_registered"><span class="txt">បានចុះបញ្ជី <span class="en">/ Registered</span></span></label>
+      <label class="chk"><input type="radio" name="groupType" id="gt_nonregistered"><span class="txt">ពុំទាន់ចុះបញ្ជី <span class="en">/ Non-registered</span></span></label>
+    </div>
+    <div class="subhead">ចំណាត់ថ្នាក់ក្រុម / Group Category</div>
+    <div class="check-grid">
+      <label class="chk"><input type="checkbox" id="gc_youth"><span class="txt">ក្រុមយុវជន <span class="en">/ Youth group</span></span></label>
+      <label class="chk"><input type="checkbox" id="gc_saving"><span class="txt">ក្រុមសន្សំ <span class="en">/ Saving group</span></span></label>
+      <label class="chk"><input type="checkbox" id="gc_ac"><span class="txt">សហគមន៍កសិកម្ម <span class="en">/ AC</span></span></label>
+      <label class="chk"><input type="checkbox" id="gc_church"><span class="txt">ក្រុមជំនុំ <span class="en">/ Church</span></span></label>
+      <label class="chk"><input type="checkbox" id="gc_mother"><span class="txt">ក្រុមម៉ែៗ <span class="en">/ Mother group</span></span></label>
+      <label class="chk"><input type="checkbox" id="gc_smc"><span class="txt">គណៈកម្មការទ្រទ្រងសាលា <span class="en">/ SMC</span></span></label>
+      <label class="chk"><input type="checkbox" id="gc_wmc"><span class="txt">គណៈកម្មការគ្រប់គ្រងទឹក <span class="en">/ WMC</span></span></label>
+      <label class="chk"><input type="checkbox" id="gc_other"><span class="txt">ផ្សេងៗ(សូមបញ្ជាក់) <span class="en">/ Others (please provide)</span></span></label>
+    </div>
+    <div class="other-inline"><input type="text" id="gc_other_txt" placeholder="សូមបញ្ជាក់ / please specify"></div>
+    <div class="field-grid" style="margin-top:16px;">
+      <div class="field span-2"><label>ឈ្មោះគម្រោងស្នើសុំថវិកា <span class="en">Name of CMP / FP</span></label><input type="text" id="cmpFpName"></div>
+    </div>
+    <div class="field-grid cols-3" style="margin-top:16px;">
+      <div class="field"><label>គម្រោងស្នើសុំលើកទី <span class="en">Round of project proposed</span></label>
+        <select id="roundOfProject">
+          <option value="">-- ជ្រើសរើស / Select --</option>
+          <option value="១">លើកទី ១ / Round 1</option>
+          <option value="២">លើកទី ២ / Round 2</option>
+        </select>
+      </div>
+      <div class="field"><label>ចំនួនឆ្នាំបទពិសោធន៍ <span class="en">Years of partnership w/ AP</span></label><input type="number" id="yearsPartnership" readonly><div class="duration-hint" id="yearsPartnership_hint">Auto-calculated from "From year" →</div></div>
+      <div class="field"><label>ចាប់គិតពីឆ្នាំ <span class="en">From year 20...</span></label><input type="text" id="fromYear" placeholder="20.." maxlength="2"></div>
+    </div>
+  `
+},
+{
+  id:"sector", num:1,
+  title:"Project Sector", khmer:"វិស័យគម្រោង",
+  desc:"Which sector(s) this project mainly addresses.",
+  render: () => `
+    <div class="check-grid">
+      <label class="chk"><input type="checkbox" id="sec_edu"><span class="txt">អប់រំ និងបំណិនជីវិត <span class="en">/ Education and Life skills</span></span></label>
+      <label class="chk"><input type="checkbox" id="sec_nutrition"><span class="txt">សុខភាព និងអាហារូបត្ថម្ភ <span class="en">/ Nutrition</span></span></label>
+      <label class="chk"><input type="checkbox" id="sec_cp"><span class="txt">ការការពារកុមារ <span class="en">/ Child protection</span></span></label>
+      <label class="chk"><input type="checkbox" id="sec_youth"><span class="txt">យុវជន <span class="en">/ Youth</span></span></label>
+      <label class="chk"><input type="checkbox" id="sec_wash"><span class="txt">អនាម័យ និងទឹកស្អាត <span class="en">/ WASH</span></span></label>
+      <label class="chk"><input type="checkbox" id="sec_drr"><span class="txt">កាត់បន្ថយគ្រោះមហន្តរាយ <span class="en">/ DRR</span></span></label>
+      <label class="chk"><input type="checkbox" id="sec_eco"><span class="txt">សេដ្ឋកិច្ច និងជីវភាពគ្រួសារ <span class="en">/ Economic and Livelihood</span></span></label>
+      <label class="chk"><input type="checkbox" id="sec_other"><span class="txt">ផ្សេងៗ <span class="en">/ Others</span></span></label>
+    </div>
+    <div class="other-inline"><input type="text" id="sec_other_txt" placeholder="សូមបញ្ជាក់ / please specify"></div>
+  `
+},
+{
+  id:"objectives", num:1,
+  title:"Objectives & Locations", khmer:"វត្ថុបំណង និងទីកន្លែង",
+  desc:"",
+  render: () => `
+    <div class="field-grid">
+      <div class="field span-all"><label>វត្ថុបំណងគម្រោង <span class="en">The Objectives of the project</span></label><textarea id="objectives"></textarea></div>
+      <div class="field span-all"><label>ទីកន្លែងអនុវត្តន៍គម្រោង <span class="en">The project's target locations</span></label><textarea id="targetLocations"></textarea></div>
+    </div>
+  `
+},
+{
+  id:"beneficiaries", num:1,
+  title:"Members & Beneficiaries", khmer:"សមាជិក និងអ្នកទទួលផល",
+  desc:"",
+  render: () => `
+    <div class="field-grid cols-3">
+      <div class="field span-2"><label>សមាជិកក្រុមដែលអនុវត្តគម្រោង — សរុប <span class="en">Group members implemented the project — Total</span></label><input type="number" id="memTotal"></div>
+      <div class="field"><label>ស្រី <span class="en">Female</span></label><input type="number" id="memFemale"></div>
+    </div>
+    <div class="subhead">អ្នកទទួលផលពីគម្រោងជាក់ស្តែងមានចំនួន / Actual project's beneficiaries</div>
+    <div class="ben-table">
+      <div class="ben-row ben-head"><div>ក្រុម / Category</div><div>សរុប / Total</div><div>ស្រី / Female</div></div>
+      <div class="ben-row"><div class="rowlabel">សរុប / Total</div><div><input type="number" id="ben_total" oninput="validateBeneficiaries()"></div><div><input type="number" id="ben_female" oninput="validateBeneficiaries()"></div></div>
+      <div class="ben-row"><div class="rowlabel">ជនពិការ / PWD</div><div><input type="number" id="ben_pwd" oninput="validateBeneficiaries()"></div><div><input type="number" id="ben_pwd_f" oninput="validateBeneficiaries()"></div></div>
+      <div class="ben-row"><div class="rowlabel">កុមារ / Children</div><div><input type="number" id="ben_children" oninput="validateBeneficiaries()"></div><div><input type="number" id="ben_girl" oninput="validateBeneficiaries()"></div></div>
+      <div class="ben-row"><div class="rowlabel">កុមារទំនុកបម្រុង / RC</div><div><input type="number" id="ben_rc" oninput="validateBeneficiaries()"></div><div><input type="number" id="ben_rc_girl" oninput="validateBeneficiaries()"></div></div>
+      <div class="ben-row"><div class="rowlabel">កុមារងាយរងគ្រោះ / MVC</div><div><input type="number" id="ben_mvc" oninput="validateBeneficiaries()"></div><div><input type="number" id="ben_mvc_girl" oninput="validateBeneficiaries()"></div></div>
+    </div>
+    <div id="ben_warning" class="ben-warning" style="display:none;"></div>
+  `
+},
+{
+  id:"length", num:1,
+  title:"Length of Implementation", khmer:"រយៈពេលអនុវត្តន៍",
+  desc:"Planned vs. actual implementation window (Sat/Sun inclusive).",
+  render: () => `
+    <div class="subhead">ប៉ាន់ប្រមាណ (នៅក្នុងផែនការ) / Estimated plan</div>
+    <div class="field-grid">
+      <div class="field"><label>ចំនួនថ្ងៃ <span class="en">Number of days</span></label><input type="number" id="plan_days" readonly><div class="duration-hint" id="plan_duration_hint">Auto-calculated from dates →</div></div>
+      <div class="field">
+        <label>ចាប់ផ្ដើម <span class="en">Starting date</span></label>
+        <div class="datebox">
+          <input type="number" id="plan_start_d" placeholder="ថ្ងៃ"><span>/</span>
+          <input type="number" id="plan_start_m" placeholder="ខែ"><span>/ 20</span>
+          <input type="text" id="plan_start_y" class="year" placeholder="ឆ្នាំ">
+        </div>
+      </div>
+      <div class="field span-2">
+        <label>រហូតដល់ <span class="en">To date</span></label>
+        <div class="datebox">
+          <input type="number" id="plan_end_d" placeholder="ថ្ងៃ"><span>/</span>
+          <input type="number" id="plan_end_m" placeholder="ខែ"><span>/ 20</span>
+          <input type="text" id="plan_end_y" class="year" placeholder="ឆ្នាំ">
+        </div>
+      </div>
+    </div>
+    <div class="subhead">ការអនុវត្តន៍ជាក់ស្តែង / Actual implementation</div>
+    <div class="field-grid">
+      <div class="field"><label>ចំនួនថ្ងៃ <span class="en">Number of days</span></label><input type="number" id="act_days" readonly><div class="duration-hint" id="act_duration_hint">Auto-calculated from dates →</div></div>
+      <div class="field">
+        <label>ចាប់ផ្ដើម <span class="en">Starting date</span></label>
+        <div class="datebox">
+          <input type="number" id="act_start_d" placeholder="ថ្ងៃ"><span>/</span>
+          <input type="number" id="act_start_m" placeholder="ខែ"><span>/ 20</span>
+          <input type="text" id="act_start_y" class="year" placeholder="ឆ្នាំ">
+        </div>
+      </div>
+      <div class="field span-2">
+        <label>រហូតដល់ <span class="en">To date</span></label>
+        <div class="datebox">
+          <input type="number" id="act_end_d" placeholder="ថ្ងៃ"><span>/</span>
+          <input type="number" id="act_end_m" placeholder="ខែ"><span>/ 20</span>
+          <input type="text" id="act_end_y" class="year" placeholder="ឆ្នាំ">
+        </div>
+      </div>
+    </div>
+  `
+},
+{
+  id:"budget", num:1,
+  title:"Budget Summary & Group Assets", khmer:"សេចក្តីសង្ខេបថវិកា",
+  desc:"",
+  render: () => `
+    <div class="field-grid">
+      <div class="field"><label>សរុបរួម (USD) <span class="en">Grand total</span></label><input type="number" id="budget_grand"></div>
+      <div class="field"><label>ជាអក្សរ <span class="en">In words</span></label><input type="text" id="budget_grand_words"></div>
+      <div class="field"><label>ថវិកាពីអង្គការ (USD) <span class="en">WVI's budget</span></label><input type="number" id="budget_wvi"></div>
+      <div class="field"><label>ជាអក្សរ <span class="en">In words</span></label><input type="text" id="budget_wvi_words"></div>
+      <div class="field"><label>ថវិកាពីក្រុមផ្ទាល់ (USD) <span class="en">Group's budget</span></label><input type="number" id="budget_group"></div>
+      <div class="field"><label>ជាអក្សរ <span class="en">In words</span></label><input type="text" id="budget_group_words"></div>
+      <div class="field"><label>កំលាំងពលកម្ម/សម្ភារៈ (USD) <span class="en">Labor & material converted</span></label><input type="number" id="budget_labor"></div>
+      <div class="field"><label>ជាអក្សរ <span class="en">In words</span></label><input type="text" id="budget_labor_words"></div>
+    </div>
+    <div class="subhead">ធនធាន ឬទ្រព្យសម្បត្តិរបស់ក្រុម / Group Assets</div>
+    <div class="field-grid">
+      <div class="field"><label>ជាសាច់ប្រាក់ (USD) <span class="en">In cash</span></label><input type="number" id="asset_cash"></div>
+      <div class="field"><label>សម្ភារៈប៉ាន់ប្រមាណ (USD) <span class="en">Material estimated</span></label><input type="number" id="asset_material"></div>
+    </div>
+  `
+},
+{
+  id:"narrative", num:2,
+  title:"Results Report (Narrative)", khmer:"របាយការណ៍លទ្ធផលអនុវត្តគម្រោង",
+  desc:"Report on results toward the project's objectives.",
+  render: () => `
+    <div class="field-grid">
+      <div class="field span-all">
+        <label>២.១. តើនណាខ្លះដែលបានចូលរួមធ្វើផែនការ និងអនុវត្តគម្រោងនេះ ហើយបានចូលរួមចំណែកអ្វីខ្លះ? <span class="en">/ Who was involved in planning and implementing the project?</span></label>
+        <textarea class="tall" id="q1"></textarea>
+      </div>
+      <div class="field span-all">
+        <label>២.២. រៀបរាប់អំពីសកម្មភាពចម្បងៗរបស់គម្រោងខ្នាតតូចដែលត្រូវបានអនុវត្ត <span class="en">/ What key activities did this micro-project implement?</span></label>
+        <textarea class="tall" id="q2"></textarea>
+      </div>
+      <div class="field span-all">
+        <label>២.៣. តើសកម្មភាពចម្បងៗទាំងនោះត្រូវបានអនុវត្តយ៉ាងដូចម្តេច? <span class="en">/ How were the key activities of this micro-project implemented?</span></label>
+        <textarea class="tall" id="q3"></textarea>
+      </div>
+      <div class="field span-all">
+        <label>២.៤. តើគម្រោងបានចូលរួមចំណែកដល់សុខុមាលភាពកុមារយ៉ាងដូចម្តេចខ្លះ? <span class="en">/ How did the project contribute to improvements in CWB? (Highlight key outputs and outcomes — with evidence)</span></label>
+        <textarea class="tall" id="q4"></textarea>
+      </div>
+      <div class="field span-all">
+        <label>២.៥. តើគម្រោងបានជួយពង្រឹងសមត្ថភាពដល់សមាជិកក្រុម គ្រួសារ សហគមន៍ និងដៃគូមូលដ្ឋានយ៉ាងដូចម្តេច? <span class="en">/ How did the project contribute to strengthening the capacity of individuals, households, communities and local partners?</span></label>
+        <textarea class="tall" id="q5"></textarea>
+      </div>
+    </div>
+  `
+},
+{
+  id:"financial", num:3,
+  title:"Financial Report", khmer:"របាយការណ៍ហិរញ្ញវត្ថុ",
+  desc:"Starts with 7 activity lines — click \"+ Add row\" to add as many as your project needs. Remaining balance is calculated automatically (budgeted − cash − labor/material).",
+  render: () => `
+    <div class="fin-table-wrap">
+      <table class="fin" id="finTable">
+        <thead>
+          <tr>
+            <th rowspan="2">លេខ<br>No.</th>
+            <th rowspan="2">បរិយាយសកម្មភាព<br>Description of activities</th>
+            <th rowspan="2">ទឹកប្រាក់បានគ្រោង<br>Budgeted (USD)</th>
+            <th colspan="3">ប្រាក់ចំណាយសុទ្ធ / Net expense</th>
+            <th rowspan="2" class="actioncol"></th>
+          </tr>
+          <tr>
+            <th>ចំណាយជាសាច់ប្រាក់<br>Cash</th>
+            <th>ចំណាយពលកម្ម/សេវាកម្ម/សម្ភារៈ<br>Labor / service / material</th>
+            <th>ចំនួនប្រាក់នៅសល់<br>Remaining</th>
+          </tr>
+        </thead>
+        <tbody id="finBody"></tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2" style="text-align:right;">សរុបប្រាក់ចំណាយ / Total</td>
+            <td class="num" id="fin_tot_budget">0.00</td>
+            <td class="num" id="fin_tot_cash">0.00</td>
+            <td class="num" id="fin_tot_labor">0.00</td>
+            <td class="num" id="fin_tot_remain">0.00</td>
+            <td class="actioncol"></td>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="fin-add-row"><button type="button" onclick="addFinRow()">+ បន្ថែមជួរ / Add row</button></div>
+    </div>
+  `
+},
+{
+  id:"signatures", num:3,
+  title:"Sign-off", khmer:"ការចុះហត្ថលេខា",
+  desc:"",
+  render: () => `
+    <div class="field-grid">
+      <div class="field"><label>រៀបចំដោយ <span class="en">Prepared by</span></label><input type="text" id="preparedBy"></div>
+      <div class="field"><label>អនុម័តដោយ <span class="en">Approved by</span></label><input type="text" id="approvedBy"></div>
+      <div class="field">
+        <label>កាលបរិច្ឆេទ (រៀបចំ) <span class="en">Date prepared</span></label>
+        <div class="datebox">
+          <input type="number" id="prep_d" placeholder="ថ្ងៃ"><span>/</span>
+          <input type="number" id="prep_m" placeholder="ខែ"><span>/</span>
+          <input type="text" id="prep_y" class="year" placeholder="ឆ្នាំ">
+        </div>
+      </div>
+      <div class="field">
+        <label>កាលបរិច្ឆេទ (អនុម័ត) <span class="en">Date approved</span></label>
+        <div class="datebox">
+          <input type="number" id="app_d" placeholder="ថ្ងៃ"><span>/</span>
+          <input type="number" id="app_m" placeholder="ខែ"><span>/</span>
+          <input type="text" id="app_y" class="year" placeholder="ឆ្នាំ">
+        </div>
+      </div>
+    </div>
+    <div class="actions">
+      <span></span>
+      <button class="btn primary" onclick="generateReport()">Generate filled report &rarr;</button>
+    </div>
+  `
+}
+];
+
+/* ---------------------------------------------------------
+   RENDER FORM
+--------------------------------------------------------- */
+const secWrap = document.getElementById('sections');
+const railInner = document.getElementById('railInner');
+
+sections.forEach((s, i) => {
+  const card = document.createElement('section');
+  card.className = 'card';
+  card.id = 'sec-' + s.id;
+  card.innerHTML = `
+    <div class="sec-head"><span class="sec-num">${s.num}</span><h2 class="khmer">${s.khmer}</h2></div>
+    <h2 style="margin-left:36px;font-size:15px;color:var(--muted);font-weight:400;">${s.title}</h2>
+    ${s.desc ? `<div class="sec-desc">${s.desc}</div>` : '<div style="margin-bottom:16px;"></div>'}
+    ${s.render()}
+  `;
+  secWrap.appendChild(card);
+
+  const btn = document.createElement('button');
+  btn.textContent = s.title;
+  btn.onclick = () => document.getElementById('sec-' + s.id).scrollIntoView({behavior:'smooth', block:'start'});
+  railInner.appendChild(btn);
+});
+
+/* Build financial table rows — starts with 7 lines (matches original form),
+   but "+ Add row" can append as many more as a real project needs. */
+const finBody = document.getElementById('finBody');
+let finRowCounter = 0;
+
+function addFinRow(){
+  finRowCounter++;
+  const i = finRowCounter;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="rowno">${i}</td>
+    <td><input type="text" id="fin_desc_${i}"></td>
+    <td><input type="number" step="0.01" id="fin_budget_${i}" oninput="recalcFin()"></td>
+    <td><input type="number" step="0.01" id="fin_cash_${i}" oninput="recalcFin()"></td>
+    <td><input type="number" step="0.01" id="fin_labor_${i}" oninput="recalcFin()"></td>
+    <td class="num" id="fin_remain_${i}">0.00</td>
+    <td class="rowaction"><button type="button" class="row-del-btn" onclick="removeFinRow(this)" title="Remove row / លុបជួរ">✕</button></td>
+  `;
+  finBody.appendChild(tr);
+}
+
+function removeFinRow(btn){
+  const rows = finBody.querySelectorAll('tr');
+  if (rows.length <= 1) return; // keep at least one row
+  btn.closest('tr').remove();
+  renumberFinRows();
+  recalcFin();
+}
+
+function renumberFinRows(){
+  finBody.querySelectorAll('tr').forEach((tr, idx) => {
+    tr.querySelector('.rowno').textContent = idx + 1;
+  });
+}
+
+for (let i = 1; i <= 7; i++) addFinRow();
+
+function recalcFin(){
+  let totB=0, totC=0, totL=0, totR=0;
+  finBody.querySelectorAll('tr').forEach(tr => {
+    const b = parseFloat(tr.querySelector('input[id^="fin_budget_"]').value) || 0;
+    const c = parseFloat(tr.querySelector('input[id^="fin_cash_"]').value) || 0;
+    const l = parseFloat(tr.querySelector('input[id^="fin_labor_"]').value) || 0;
+    const r = b - c - l;
+    tr.querySelector('[id^="fin_remain_"]').textContent = r.toFixed(2);
+    totB+=b; totC+=c; totL+=l; totR+=r;
+  });
+  document.getElementById('fin_tot_budget').textContent = totB.toFixed(2);
+  document.getElementById('fin_tot_cash').textContent = totC.toFixed(2);
+  document.getElementById('fin_tot_labor').textContent = totL.toFixed(2);
+  document.getElementById('fin_tot_remain').textContent = totR.toFixed(2);
+}
+
+/* Scrollspy for rail */
+const railButtons = Array.from(railInner.children);
+window.addEventListener('scroll', () => {
+  let idx = 0;
+  sections.forEach((s, i) => {
+    const el = document.getElementById('sec-' + s.id);
+    if (el.getBoundingClientRect().top < 140) idx = i;
+  });
+  railButtons.forEach((b,i)=>b.classList.toggle('active', i===idx));
+});
+railButtons[0] && railButtons[0].classList.add('active');
+
+/* ---------------------------------------------------------
+   LOCATION: villages by commune (ស្រុកមង្គលបុរី, ខេត្តបន្ទាយមានជ័យ)
+--------------------------------------------------------- */
+const VILLAGES_BY_COMMUNE = {
+  "បន្ទាយនាង": ["អូរអណ្តូងកណ្តាល","គោកទន្លាប់","ពង្រ","ត្រាង","គោកព្នៅ","បន្ទាយនាង","ត្របែក","សំរោងពេន","ដងរុនកើត","អូរអណ្តូងលិច","ព្រៃចង្ហាកើត","គោកក្តួច","អូរស្ងួត","ព្រៃចង្ហាលិច","អូរអណ្តូងកើត","ដងរុនលិច","អូរធំ","ឃីឡិក","ភ្នំ"],
+  "តាឡំ": ["តាឡំកណ្តាល","ខ្លាខាំឆែ្ក","បឹងឃ្លាំងលិច","បឹងឃ្លាំងកើត","ចុងគោក","តាឡំចុង","បឹងវែង","ព្រះស្រែ"],
+  "ស្រះរាំង": ["ចំការចេក","ស្រះរាំង","តាអ៊ិន១","ក្រូច","គោកច្រាប","គោកក្រសាំង","តាអ៊ិន២","តាចាន់","គោកស្រុក"]
+};
+function updateVillageOptions(){
+  const communeSel = document.getElementById('commune');
+  const villageSel = document.getElementById('village');
+  if (!communeSel || !villageSel) return;
+  const villages = VILLAGES_BY_COMMUNE[communeSel.value] || [];
+  villageSel.innerHTML = villages.map(name => `<option value="${name}">${name}</option>`).join('');
+}
+updateVillageOptions();
+
+/* ---------------------------------------------------------
+   HELPERS
+--------------------------------------------------------- */
+function v(id){
+  const el = document.getElementById(id);
+  if (!el) return '';
+  return (el.value || '').trim();
+}
+function checked(id){ const el = document.getElementById(id); return el && el.checked; }
+function dots(text, minLen){
+  text = (text||'').toString();
+  if (!text) return `<span class="empty-dots">${'.'.repeat(minLen||20)}</span>`;
+  return `<span class="filled">${escapeHtml(text)}</span>`;
+}
+function escapeHtml(str){
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function mark(cond){ return cond ? '☑' : '☐'; }
+
+/* ---------------------------------------------------------
+   KHMER NUMBER-TO-WORDS (for USD amount fields)
+--------------------------------------------------------- */
+const KHMER_DIGIT = {0:'សូន្យ',1:'មួយ',2:'ពីរ',3:'បី',4:'បួន',5:'ប្រាំ',6:'ប្រាំមួយ',7:'ប្រាំពីរ',8:'ប្រាំបី',9:'ប្រាំបួន'};
+const KHMER_TENS  = {2:'ម្ភៃ',3:'សាមសិប',4:'សែសិប',5:'ហាសិប',6:'ហុកសិប',7:'ចិតសិប',8:'ប៉ែតសិប',9:'កៅសិប'};
+const KHMER_PLACE = [[100000,'សែន'],[10000,'ម៉ឺន'],[1000,'ពាន់'],[100,'រយ']];
+
+function khmerBelowMillion(n){
+  let out = '';
+  KHMER_PLACE.forEach(([place, word]) => {
+    const digit = Math.floor(n / place) % 10;
+    if (digit > 0) out += KHMER_DIGIT[digit] + word;
+  });
+  const rem = n % 100;
+  if (rem > 0) {
+    if (rem < 10) out += KHMER_DIGIT[rem];
+    else if (rem === 10) out += 'ដប់';
+    else if (rem < 20) out += 'ដប់' + KHMER_DIGIT[rem - 10];
+    else {
+      const t = Math.floor(rem / 10), o = rem % 10;
+      out += KHMER_TENS[t] + (o > 0 ? KHMER_DIGIT[o] : '');
+    }
+  }
+  return out;
+}
+
+function khmerNumberWords(n){
+  n = Math.floor(Math.abs(n));
+  if (n === 0) return 'សូន្យ';
+  if (n < 1000000) return khmerBelowMillion(n);
+  const millions = Math.floor(n / 1000000);
+  const remainder = n % 1000000;
+  return khmerNumberWords(millions) + 'លាន' + (remainder > 0 ? khmerBelowMillion(remainder) : '');
+}
+
+/* Converts a USD amount (number or numeric string) into Khmer words,
+   e.g. 5000 -> "ប្រាំពាន់ដុល្លារគត់" ; 1250.5 -> "មួយពាន់ពីររយហាសិបដុល្លារនិងហាសិបសេន" */
+function amountToKhmerWords(amount){
+  const num = parseFloat(amount);
+  if (isNaN(num) || num < 0) return '';
+  const whole = Math.floor(num);
+  const cents = Math.round((num - whole) * 100);
+  let out = khmerNumberWords(whole) + 'ដុល្លារ';
+  if (cents > 0) out += 'និង' + khmerNumberWords(cents) + 'សេន';
+  else out += 'គត់';
+  return out;
+}
+
+/* ---------------------------------------------------------
+   GROUP SELECT (from partner list exported from FP Implementation Report)
+   Selecting a group auto-fills Name / ID / Type / Category.
+   "Other" clears the fields so the user can type manually, as before.
+--------------------------------------------------------- */
+const GROUPS_DATA = [
+  {id:"MBR2-0001",name:"ក្រុមគណៈកម្មការគ្រប់គ្រងសាលាតាអ៊ិន",type:"Non-Registered",category:"gc_smc"},
+  {id:"MBR2-0002",name:"គណកម្មការគ្រប់គ្រងសាលាដងរុន",type:"Non-Registered",category:"gc_smc"},
+  {id:"MBR2-0003",name:"ក្រុមគណៈកម្មការគ្រប់គ្រងសាលាគោកទន្លាប់",type:"Non-Registered",category:"gc_smc"},
+  {id:"MBR2-0004",name:"ក្រុមគណកម្មការគ្រប់គ្រងទឹកគោកក្រសាំងរុងរឿង",type:"Non-Registered",category:"gc_wmc"},
+  {id:"MBR2-0005",name:"គណកម្មការគ្រប់គ្រងសាលាបឋមសិក្សាឃីឡិក",type:"Non-Registered",category:"gc_smc"},
+  {id:"MBR2-0006",name:"ក្រុមសន្សំស្ត្រីខ្លាខាំឆ្កែជោគជ័យ",type:"Non-Registered",category:"gc_saving"},
+  {id:"MBR2-0007",name:"ក្រុមគណៈកម្មការគ្រប់គ្រងសាលាព្រៃចង្ហា",type:"Non-Registered",category:"gc_smc"},
+  {id:"MBR2-0008",name:"ក្រុមគណកម្មការគ្រប់គ្រងសាលាអនុវិទ្យាល័យឃីឡិក",type:"Non-Registered",category:"gc_smc"},
+  {id:"MBR2-0010",name:"គណកម្មការគ្រប់គ្រងសាលាអូរអណ្តូង",type:"Non-Registered",category:"gc_smc"},
+  {id:"MBR2-0011",name:"ព្រះវិហារបាប់ទីសចុងគោក",type:"Registered",category:"gc_church"},
+  {id:"MBR2-0014",name:"ក្រុមស្នូលអភិវឌ្ឍន៍សហគមន៍ឃុំស្រះរាំង",type:"Non-Registered",category:"gc_youth"},
+  {id:"MBR2-0015",name:"ក្រុមគណៈកម្មការគ្រប់គ្រងសាលាគោកស្រុក",type:"Non-Registered",category:"gc_smc"},
+  {id:"MBR2-0016",name:"ព្រះវិហារណាសារីនស្រះរាំង",type:"Non-Registered",category:"gc_church"},
+  {id:"MBR2-0017",name:"ព្រះវិហារក្ដីសុខសាន្ដនៃព្រះគ្រីស្ទ",type:"Registered",category:"gc_church"},
+  {id:"MBR2-0018",name:"ព្រះវិហារមេតូឌីសតាឡំ",type:"Registered",category:"gc_church"},
+  {id:"MBR2-0019",name:"ក្រុមស្នូលអភិវឌ្ឍន៍សហគមន៍ឃុំតាឡំ",type:"Non-Registered",category:"gc_youth"},
+  {id:"MBR2-0022",name:"គណៈកម្មការគ្រប់គ្រងសាលាស្រះរាំង",type:"Non-Registered",category:"gc_smc"},
+  {id:"MBR2-0025",name:"ក្រុមគណៈកម្មការគ្រប់គ្រងសាលាពង្រ",type:"Non-Registered",category:"gc_smc"}
+];
+
+function populateGroupSelect(){
+  const sel = document.getElementById('groupNameSelect');
+  if (!sel) return;
+  const otherOpt = sel.querySelector('option[value="__other__"]');
+  GROUPS_DATA.forEach(g => {
+    const opt = document.createElement('option');
+    opt.value = g.id;
+    opt.textContent = `${g.name} (${g.id})`;
+    sel.insertBefore(opt, otherOpt);
+  });
+}
+populateGroupSelect();
+
+function clearGroupCategoryChecks(){
+  ['gc_youth','gc_saving','gc_ac','gc_church','gc_mother','gc_smc','gc_wmc','gc_other'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = false;
+  });
+}
+
+function onGroupSelect(){
+  const sel = document.getElementById('groupNameSelect');
+  const nameEl = document.getElementById('groupName');
+  const idEl = document.getElementById('groupId');
+  const val = sel.value;
+
+  if (val === '') return;
+
+  if (val === '__other__') {
+    nameEl.value = '';
+    idEl.value = '';
+    document.getElementById('gt_registered').checked = false;
+    document.getElementById('gt_nonregistered').checked = false;
+    clearGroupCategoryChecks();
+    nameEl.focus();
+    return;
+  }
+
+  const g = GROUPS_DATA.find(x => x.id === val);
+  if (!g) return;
+  nameEl.value = g.name;
+  idEl.value = g.id;
+  document.getElementById('gt_registered').checked = (g.type === 'Registered');
+  document.getElementById('gt_nonregistered').checked = (g.type === 'Non-Registered');
+  clearGroupCategoryChecks();
+  const catEl = document.getElementById(g.category);
+  if (catEl) catEl.checked = true;
+}
+
+/* ---------------------------------------------------------
+   BENEFICIARY COUNT VALIDATION
+   - No sub-category total may exceed the grand Total.
+   - No "Female" value may exceed its row's own total or the grand Female total.
+   - RC and MVC (both total & female) may not exceed Children (total & girl).
+--------------------------------------------------------- */
+function validateBeneficiaries(){
+  const num = id => parseFloat(v(id)) || 0;
+  const total = num('ben_total'), female = num('ben_female');
+  const pwd = num('ben_pwd'), pwdF = num('ben_pwd_f');
+  const children = num('ben_children'), girl = num('ben_girl');
+  const rc = num('ben_rc'), rcGirl = num('ben_rc_girl');
+  const mvc = num('ben_mvc'), mvcGirl = num('ben_mvc_girl');
+
+  const problems = [];
+  function flag(id, cond, msg){
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('input-invalid', !!cond);
+    if (cond) problems.push(msg);
+  }
+
+  flag('ben_female', female > total,
+    'ស្រី សរុប (Female) មិនអាចច្រើនជាងសរុប (Total) បានទេ');
+  flag('ben_pwd', pwd > total,
+    'ជនពិការ (PWD) មិនអាចច្រើនជាងសរុប (Total) បានទេ');
+  flag('ben_pwd_f', pwdF > pwd || pwdF > female,
+    'ជនពិការស្រី (PWD Female) មិនអាចច្រើនជាងចំនួនជនពិការ ឬស្រីសរុបបានទេ');
+  flag('ben_children', children > total,
+    'កុមារ (Children) មិនអាចច្រើនជាងសរុប (Total) បានទេ');
+  flag('ben_girl', girl > children || girl > female,
+    'កុមារី (Girl) មិនអាចច្រើនជាងកុមារ ឬស្រីសរុបបានទេ');
+  flag('ben_rc', rc > children,
+    'កុមារទំនុកបម្រុង (RC) មិនអាចច្រើនជាងកុមារ (Children) បានទេ');
+  flag('ben_rc_girl', rcGirl > rc || rcGirl > girl,
+    'កុមារទំនុកបម្រុងស្រី (RC Girl) មិនអាចច្រើនជាង RC សរុប ឬកុមារីបានទេ');
+  flag('ben_mvc', mvc > children,
+    'កុមារងាយរងគ្រោះ (MVC) មិនអាចច្រើនជាងកុមារ (Children) បានទេ');
+  flag('ben_mvc_girl', mvcGirl > mvc || mvcGirl > girl,
+    'កុមារងាយរងគ្រោះស្រី (MVC Girl) មិនអាចច្រើនជាង MVC សរុប ឬកុមារីបានទេ');
+
+  const warnBox = document.getElementById('ben_warning');
+  if (warnBox) {
+    const unique = [...new Set(problems)];
+    if (unique.length) {
+      warnBox.style.display = 'block';
+      warnBox.innerHTML = unique.map(m => '⚠ ' + m).join('<br>');
+    } else {
+      warnBox.style.display = 'none';
+      warnBox.innerHTML = '';
+    }
+  }
+}
+
+/* ---------------------------------------------------------
+   AUTO DATE-RANGE CALCULATION (Length of Implementation)
+   Fills "Number of days" from Starting date + To date (inclusive of both days),
+   and shows a small "X years Y months Z days" hint.
+--------------------------------------------------------- */
+function buildDateFromParts(d, m, y){
+  if (!d || !m || !y) return null;
+  const day = parseInt(d, 10), month = parseInt(m, 10), year = 2000 + parseInt(y, 10);
+  if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
+  const dt = new Date(year, month - 1, day);
+  // reject invalid dates that rolled over (e.g. 31/02)
+  if (dt.getFullYear() !== year || dt.getMonth() !== month - 1 || dt.getDate() !== day) return null;
+  return dt;
+}
+
+function diffYearsMonthsDays(start, end){
+  let years = end.getFullYear() - start.getFullYear();
+  let months = end.getMonth() - start.getMonth();
+  let days = end.getDate() - start.getDate();
+  if (days < 0) {
+    months -= 1;
+    const prevMonthLastDay = new Date(end.getFullYear(), end.getMonth(), 0).getDate();
+    days += prevMonthLastDay;
+  }
+  if (months < 0) { years -= 1; months += 12; }
+  return { years, months, days };
+}
+
+function updateImplementationDuration(prefix){
+  const daysInput = document.getElementById(prefix + '_days');
+  const hint = document.getElementById(prefix + '_duration_hint');
+  if (!daysInput) return;
+  const start = buildDateFromParts(v(prefix + '_start_d'), v(prefix + '_start_m'), v(prefix + '_start_y'));
+  const end = buildDateFromParts(v(prefix + '_end_d'), v(prefix + '_end_m'), v(prefix + '_end_y'));
+  if (!start || !end) return; // keep whatever is there until both dates are complete
+  if (end < start) {
+    if (hint) hint.textContent = 'ថ្ងៃបញ្ចប់ត្រូវធំជាងថ្ងៃចាប់ផ្ដើម / To date must be after starting date';
+    return;
+  }
+  const totalDays = Math.round((end - start) / 86400000) + 1; // inclusive, per Sat/Sun-inclusive rule
+  daysInput.value = totalDays;
+  const { years, months, days } = diffYearsMonthsDays(start, end);
+  if (hint) {
+    const parts = [];
+    if (years > 0) parts.push(years + ' ឆ្នាំ');
+    if (months > 0) parts.push(months + ' ខែ');
+    if (days > 0 || parts.length === 0) parts.push(days + ' ថ្ងៃ');
+    hint.textContent = `≈ ${parts.join(' ')}  (${totalDays} ថ្ងៃសរុប / total days)`;
+  }
+}
+
+function linkDurationInputs(prefix){
+  ['start_d','start_m','start_y','end_d','end_m','end_y'].forEach(suffix => {
+    const el = document.getElementById(prefix + '_' + suffix);
+    if (el) el.addEventListener('input', () => updateImplementationDuration(prefix));
+  });
+}
+linkDurationInputs('plan');
+linkDurationInputs('act');
+
+/* ---------------------------------------------------------
+   AUTO YEARS-OF-PARTNERSHIP CALCULATION
+   "From year 20.." (2-digit) -> "Years of partnership w/ AP" = current year - from year
+--------------------------------------------------------- */
+function updateYearsPartnership(){
+  const el = document.getElementById('fromYear');
+  const out = document.getElementById('yearsPartnership');
+  const hint = document.getElementById('yearsPartnership_hint');
+  if (!el || !out) return;
+  const raw = el.value.trim();
+  if (raw === '') { out.value = ''; if (hint) hint.textContent = 'Auto-calculated from "From year" →'; return; }
+  const fromYear = 2000 + parseInt(raw, 10);
+  const currentYear = new Date().getFullYear();
+  if (isNaN(fromYear) || fromYear > currentYear) {
+    out.value = '';
+    if (hint) hint.textContent = 'ឆ្នាំមិនត្រឹមត្រូវ / Year cannot be later than current year';
+    return;
+  }
+  const years = currentYear - fromYear;
+  out.value = years;
+  if (hint) hint.textContent = `${fromYear} → ${currentYear} = ${years} ឆ្នាំ / years`;
+}
+document.getElementById('fromYear').addEventListener('input', updateYearsPartnership);
+
+/* Wire up amount -> words auto-fill for the budget fields */
+function linkAmountToWords(amountId, wordsId){
+  const amountEl = document.getElementById(amountId);
+  const wordsEl = document.getElementById(wordsId);
+  if (!amountEl || !wordsEl) return;
+  amountEl.addEventListener('input', () => {
+    wordsEl.value = amountEl.value.trim() === '' ? '' : amountToKhmerWords(amountEl.value);
+  });
+}
+[
+  ['budget_grand', 'budget_grand_words'],
+  ['budget_wvi', 'budget_wvi_words'],
+  ['budget_group', 'budget_group_words'],
+  ['budget_labor', 'budget_labor_words']
+].forEach(([a, w]) => linkAmountToWords(a, w));
+function dateStr(d,m,y){
+  if (!d && !m && !y) return dots('',15);
+  return `${dots(d,2)} / ${dots(m,2)} / 20${dots(y,2)}`;
+}
+
+/* ---------------------------------------------------------
+   GENERATE REPORT VIEW
+--------------------------------------------------------- */
+function generateReport(){
+  recalcFin();
+
+  const projectTypes = [
+    ['pt_ce', "គម្រោងខ្នាតតូចរបស់សហគមន៍ / CE's community micro-project (គម្រោងមាន Output Code 80.02)"],
+    ['pt_nutrition', "គម្រោងដៃគូហិរញវត្ថុ នៃគម្រោងបចេ្ចកទេសអាហារូបត្ថម្ភ"],
+    ['pt_education', "គម្រោងដៃគូហិរញវត្ថុ នៃគម្រោងបចេ្ចកទេសអប់រំ"],
+    ['pt_cp', "គម្រោងដៃគូហិរញវត្ថុ នៃគម្រោងបចេ្ចកទេសការការពារកុមារ និងការចូលរួម"],
+    ['pt_drm', "គម្រោងដៃគូហិរញវត្ថុ នៃគម្រោងគ្រប់គ្រងគ្រោះមហន្តរាយ"],
+    ['pt_other', "គម្រោងដៃគូហិរញវត្ថុ នៃគម្រោងផ្សេងពីនេះ សូមបញ្ជាក់ " + (v('pt_other_txt') || '—')],
+  ];
+  const groupCats = [
+    ['gc_youth','ក្រុមយុវជន Youth group'],['gc_saving','ក្រុមសន្សំ Saving group'],
+    ['gc_ac','សហគមន៍កសិកម្ម AC'],['gc_church','ក្រុមជំនុំ Church'],
+    ['gc_mother','ក្រុមម៉ែៗ Mother group'],['gc_smc','គណៈកម្មការទ្រទ្រងសាលា SMC'],
+    ['gc_wmc','គណៈកម្មការគ្រប់គ្រងទឹក WMC'],
+    ['gc_other','ផ្សេងៗ(សូមបញ្ជាក់) Others (Please provide): ' + (v('gc_other_txt')||'—')],
+  ];
+  const sectors = [
+    ['sec_edu','អប់រំ និងបំណិនជីវិត Education and Life skills'],['sec_nutrition','សុខភាព និងអាហារូបត្ថម្ភ Nutrition'],
+    ['sec_cp','ការការពារកុមារ Child protection'],['sec_youth','យុវជន Youth'],
+    ['sec_wash','អនាម័យ និងទឹកស្អាត WASH'],['sec_drr','កាត់បន្ថយគ្រោះមហន្តរាយ DRR'],
+    ['sec_eco','សេដ្ឋកិច្ច និងជីវភាពគ្រួសារ Economic and Livelihood'],['sec_other','ផ្សេងៗ Others: ' + (v('sec_other_txt')||'—')],
+  ];
+
+  const checklist = (arr) => arr.map(([id,label]) =>
+    `<div class="checkline"><span class="checkmark">${mark(checked(id))}</span> ${escapeHtml(label)}</div>`
+  ).join('');
+
+  let finRows = '';
+  document.querySelectorAll('#finBody tr').forEach((tr, idx) => {
+    const desc = tr.querySelector('input[id^="fin_desc_"]').value;
+    const budget = tr.querySelector('input[id^="fin_budget_"]').value || '0.00';
+    const cash = tr.querySelector('input[id^="fin_cash_"]').value || '0.00';
+    const labor = tr.querySelector('input[id^="fin_labor_"]').value || '0.00';
+    const remain = tr.querySelector('[id^="fin_remain_"]').textContent;
+    finRows += `<tr>
+      <td style="text-align:center;">${idx+1}</td>
+      <td>${dots(desc, 18)}</td>
+      <td class="num">${budget}</td>
+      <td class="num">${cash}</td>
+      <td class="num">${labor}</td>
+      <td class="num">${remain}</td>
+    </tr>`;
+  });
+
+  const html = `
+    <div class="updatedline">Updated: 12-Dec-2022</div>
+    <div class="doctitle">របាយការណ៍អនុវត្តន៍គម្រោងខ្នាតតូចសម្រាប់ភាពជាដៃគូ CMP / FP Implementation Report</div>
+
+    <div class="sect-title">១.តារាងសង្ខេបលទ្ធផលដែលបានអនុវត្ត / Table of summary achievements</div>
+    <div class="sect-title" style="font-size:12px;">General Information / ព័ត៌មានទូទៅ</div>
+    <table>
+      <tr><td colspan="4">ខេត្ត ${dots(v('province'),10)} ស្រុក ${dots(v('district'),10)} ឃុំ ${dots(v('commune'),10)} ភូមិ ${dots(v('village'),10)}</td></tr>
+      <tr><td class="labelcell">គម្រោងបច្ចេកទេស</td><td colspan="3">${checklist(projectTypes)}</td></tr>
+      <tr><td class="labelcell">Output Code</td><td colspan="3">${dots(v('outputCode'),20)} (ស្រង់ចេញពី Log-frame)</td></tr>
+      <tr><td class="labelcell">ឈ្មោះក្រុម / Group Name</td><td>${dots(v('groupName'),15)}</td>
+          <td class="labelcell">ប្រភេទក្រុម / Group Type</td>
+          <td>${mark(checked('gt_registered'))} បានចុះបញ្ជី Registered &nbsp;&nbsp; ${mark(checked('gt_nonregistered'))} ពុំទាន់ចុះបញ្ជី Non-registered</td></tr>
+      <tr><td class="labelcell">ចំណាត់ថ្នាក់ក្រុម / Group Category</td><td colspan="2">${checklist(groupCats)}</td>
+          <td class="labelcell">លេខសំគាល់ក្រុម Group ID<br>${dots(v('groupId'),15)}</td></tr>
+      <tr><td class="labelcell">ឈ្មោះគម្រោងស្នើសុំថវិកា Name of CMP / FP</td><td colspan="3">${dots(v('cmpFpName'),25)}</td></tr>
+      <tr><td class="labelcell">គម្រោងស្នើសុំលើកទី / Round of project proposed</td>
+          <td colspan="3">លើកទី ${dots(v('roundOfProject'),4)} &nbsp; ចំនួនឆ្នាំបទពិសោធន៍ធ្វើការជាដៃគូជាមួយកម្មវិធីតំបន់ / Year of partnership experience with AP ${dots(v('yearsPartnership'),4)} ឆ្នាំ &nbsp; ចាប់គិតពីឆ្នាំ / From year 20${dots(v('fromYear'),2)}</td></tr>
+      <tr><td class="labelcell">គម្រោងនេះ ផ្តោតសំខាន់លើវិស័យ / The project focused on the sector of</td><td colspan="3">${checklist(sectors)}</td></tr>
+      <tr><td class="labelcell">វត្ថុបំណងគម្រោង The Objectives of the project</td><td colspan="3">${dots(v('objectives'),40)}</td></tr>
+      <tr><td class="labelcell">ទីកន្លែងអនុវត្តន៍គម្រោង The project's target locations</td><td colspan="3">${dots(v('targetLocations'),40)}</td></tr>
+      <tr><td class="labelcell">សមាជិកក្រុមដែលអនុវត្តគម្រោង Group members implemented the project</td>
+          <td colspan="3">សរុប / Total ${dots(v('memTotal'),4)} នាក់ (${dots(v('memFemale'),4)} ស្រី)</td></tr>
+      <tr><td class="labelcell" rowspan="5">អ្នកទទួលផលពីគម្រោងជាក់ស្ដែងមានចំនួន Actual project's beneficiaries</td>
+          <td>សរុប / Total ${v('ben_total')||dots('',6)}</td><td colspan="2">ស្រី / Female ${v('ben_female')||dots('',6)}</td></tr>
+      <tr><td>ជនពិការ / PWD ${v('ben_pwd')||dots('',6)}</td><td colspan="2">ជនពិការស្រី / PWD (F) ${v('ben_pwd_f')||dots('',6)}</td></tr>
+      <tr><td>កុមារ / Children ${v('ben_children')||dots('',6)}</td><td colspan="2">កុមារី / Girl ${v('ben_girl')||dots('',6)}</td></tr>
+      <tr><td>កុមារទំនុកបម្រុង / RC ${v('ben_rc')||dots('',6)}</td><td colspan="2">កុមារទំនុកបម្រុង(ស្រី)/ RC (Girl) ${v('ben_rc_girl')||dots('',6)}</td></tr>
+      <tr><td>កុមារងាយរងគ្រោះ / MVC ${v('ben_mvc')||dots('',6)}</td><td colspan="2">កុមារងាយរងគ្រោះ(ស្រី) / MVC Girl ${v('ben_mvc_girl')||dots('',6)}</td></tr>
+      <tr><td class="labelcell" rowspan="2">រយៈពេលដែលបានអនុវត្តគម្រោង Length of project implementation</td>
+          <td colspan="3">ប៉ាន់ប្រមាណ​(នៅក្នុងផែនការ) / Estimated plan (គិតទាំង សៅរ៍ អាទិត្យ)<br>
+          ចំនួន ${dots(v('plan_days'),3)} ថ្ងៃ/Day (ចាប់ផ្ដើមពីថ្ងៃទី / Starting date ${dots(v('plan_start_d'),2)} ខែ/Month ${dots(v('plan_start_m'),2)} ឆ្នាំ/Year 20${dots(v('plan_start_y'),2)} រហូតដល់ថ្ងៃទី/To date ${dots(v('plan_end_d'),2)} ខែ / Month ${dots(v('plan_end_m'),2)} ឆ្នាំ / Year 20${dots(v('plan_end_y'),2)})</td></tr>
+      <tr><td colspan="3">ការអនុវត្តន៍ជាក់ស្តែង / Actual implementation (គិតទាំង សៅរ៍ អាទិត្យ)<br>
+          ចំនួន ${dots(v('act_days'),3)} ថ្ងៃ/Day (ចាប់ផ្ដើមពីថ្ងៃទី / Starting date ${dots(v('act_start_d'),2)} ខែ/Month ${dots(v('act_start_m'),2)} ឆ្នាំ/Year 20${dots(v('act_start_y'),2)} រហូតដល់ថ្ងៃទី / To date ${dots(v('act_end_d'),2)} ខែ / Month ${dots(v('act_end_m'),2)} ឆ្នាំ / Year 20${dots(v('act_end_y'),2)})</td></tr>
+      <tr><td class="labelcell">ថវិកាចំណាយជាក់ស្តែងសរុប Total actual expense</td>
+          <td colspan="3">
+            សរុបរួម / Grand total USD ${v('budget_grand')||dots('',10)} (ជាអក្សរ ${dots(v('budget_grand_words'),20)})<br>
+            ថវិកាពីអង្គការ / WVI's budget USD ${v('budget_wvi')||dots('',10)} (ជាអក្សរ ${dots(v('budget_wvi_words'),20)})<br>
+            ថវិកាពីក្រុមផ្ទាល់ / Group's budget USD ${v('budget_group')||dots('',10)} (ជាអក្សរ ${dots(v('budget_group_words'),20)})<br>
+            កំលាំងពលកម្ម និងសម្ភាៈចូលរួមគិតជាថវិកា / Labor & material converted USD ${v('budget_labor')||dots('',10)} (ជាអក្សរ ${dots(v('budget_labor_words'),20)})
+          </td></tr>
+      <tr><td class="labelcell">ធនធាន ឬ ទ្រព្យសម្បត្តិរបស់ក្រុម (ប្រសិនក្រុមមាន)​ Group Assets</td>
+          <td colspan="3">ជាសាច់ប្រាក់ / in cash (USD) ${v('asset_cash')||dots('',10)} សម្ភារៈប៉ាន់ប្រមាណតម្លៃស្មើ / Material estimated as USD ${v('asset_material')||dots('',10)} (សំដៅលើទ្រព្យរួមរបស់ក្រុម ឬសហគមន៍)</td></tr>
+    </table>
+
+    <div class="page-break"></div>
+    <div class="sect-title">២- រៀបរាប់ពីលទ្ធផលគម្រោងឆ្ពោះទៅរកវត្ថុបំណងគម្រោង</div>
+
+    <div class="q">២.១. នណាខ្លះដែលបានចូលរួមធ្វើផែនការ និងអនុវត្តគម្រោងនេះ ហើយបានចូលរួមចំណែកអ្វីខ្លះ? / Who was involved in planning and implementing the project?</div>
+    <div class="a">${escapeHtml(v('q1')) || '—'}</div>
+
+    <div class="q">២.២. រៀបរាប់អំពីសកម្មភាពចម្បងៗរបស់គម្រោងខ្នាតតូចដែលត្រូវបានអនុវត្ត / What key activities did this micro-project implement?</div>
+    <div class="a">${escapeHtml(v('q2')) || '—'}</div>
+
+    <div class="q">២.៣. តើសកម្មភាពចម្បងៗទាំងនោះត្រូវបានអនុវត្តយ៉ាងដូចម្តេច? / How key activities of this micro-project implemented?</div>
+    <div class="a">${escapeHtml(v('q3')) || '—'}</div>
+
+    <div class="q">២.៤. តើគម្រោងបានចូលរួមចំណែកដល់សុខុមាលភាពកុមារយ៉ាងដូចម្តេចខ្លះ? How did the project contribute to improvements in CWB? (Highlight key outputs and outcomes – with evidence)</div>
+    <div class="a">${escapeHtml(v('q4')) || '—'}</div>
+
+    <div class="q">២.៥. តើគម្រោងបានជួយពង្រឹងសមត្ថភាពដល់សមាជិកក្រុម គ្រួសារ សហគមន៍ និងដៃគូមូលដ្ឋានយ៉ាងដូចម្តេច? How did the project contribute to strengthening the capacity of individuals, households, communities and local partners?</div>
+    <div class="a">${escapeHtml(v('q5')) || '—'}</div>
+
+    <div class="page-break"></div>
+    <div class="sect-title">៣. របាយការណ៍ហិរញ្ញវត្ថុ</div>
+    <table>
+      <thead>
+        <tr>
+          <th>លេខសកម្មភាព</th><th>បរិយាយសកម្មភាព</th><th>ទឹកប្រាក់បានគ្រោង</th>
+          <th>ចំណាយជាសាច់ប្រាក់</th><th>ចំណាយជាកំលាំងពលកម្ម សេវាកម្ម ឬសម្ភារៈចូលរួម</th><th>ចំនួនប្រាក់នៅសល់</th>
+        </tr>
+      </thead>
+      <tbody>${finRows}</tbody>
+      <tfoot>
+        <tr style="font-weight:700;background:#f4f4f0;">
+          <td colspan="2" style="text-align:right;">សរុបប្រាក់ចំណាយ</td>
+          <td class="num">${document.getElementById('fin_tot_budget').textContent}</td>
+          <td class="num">${document.getElementById('fin_tot_cash').textContent}</td>
+          <td class="num">${document.getElementById('fin_tot_labor').textContent}</td>
+          <td class="num">${document.getElementById('fin_tot_remain').textContent}</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <div class="sig-grid">
+      <div>រៀបចំដោយ ${dots(v('preparedBy'),20)}<br><br>ថ្ងៃទី ${dots(v('prep_d'),2)} ខែ ${dots(v('prep_m'),2)} ឆ្នាំ ${dots(v('prep_y'),4)}<br><br>ហត្ថលេខា<br>_______________________</div>
+      <div>អនុម័តដោយ ${dots(v('approvedBy'),20)}<br><br>ថ្ងៃទី ${dots(v('app_d'),2)} ខែ ${dots(v('app_m'),2)} ឆ្នាំ ${dots(v('app_y'),4)}<br><br>ហត្ថលេខា<br>_______________________</div>
+    </div>
+  `;
+
+  document.getElementById('docOutput').innerHTML = html;
+  document.getElementById('formView').classList.add('hide');
+  document.getElementById('reportView').classList.add('show');
+  window.scrollTo(0,0);
+}
+
+function backToForm(){
+  document.getElementById('formView').classList.remove('hide');
+  document.getElementById('reportView').classList.remove('show');
+  window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>

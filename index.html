@@ -5,6 +5,7 @@
 <title>CMP / FP Implementation Report</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <style>
   :root{
     --ink:#1f2b26;
@@ -240,19 +241,145 @@
   .doc .footline{text-align:center;font-size:10px;color:#555;margin-top:26px;border-top:1px solid #ccc;padding-top:6px;}
 
   @media print{
-    .rail, .masthead, .report-toolbar, footer.appfoot, #formView{display:none !important;}
+    .masthead, .report-toolbar, footer.appfoot, .saved-reports-btn, .sr-overlay{display:none !important;}
     body{background:#fff;}
     .doc{padding:0;max-width:100%;}
   }
+
+  /* ===== SAVED REPORTS ===== */
+  .saved-reports-btn{
+    position:fixed;top:14px;right:18px;z-index:200;
+    font-family:'IBM Plex Mono',monospace;font-size:12px;
+    background:var(--gold);color:var(--moss-deep);border:none;
+    padding:9px 16px;border-radius:20px;cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,.25);font-weight:700;
+    display:flex;align-items:center;gap:6px;
+  }
+  .saved-reports-btn:hover{background:#c79c4c;}
+  .saved-reports-btn .count{
+    background:var(--moss-deep);color:#fff;border-radius:10px;
+    font-size:10.5px;padding:1px 7px;min-width:16px;text-align:center;
+  }
+  .sr-overlay{
+    display:none;position:fixed;inset:0;background:rgba(20,25,20,.55);
+    z-index:300;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;
+  }
+  .sr-overlay.show{display:flex;}
+  .sr-modal{
+    background:var(--white);border-radius:4px;max-width:720px;width:100%;
+    box-shadow:0 10px 40px rgba(0,0,0,.35);
+  }
+  .sr-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:18px 22px;border-bottom:1px solid var(--line);background:var(--moss-deep);color:#fff;
+    border-radius:4px 4px 0 0;
+  }
+  .sr-head h3{font-size:16px;margin:0;}
+  .sr-head .sr-close{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1;}
+  .sr-body{padding:16px 22px 22px;max-height:60vh;overflow-y:auto;}
+  .sr-toolbar{display:flex;justify-content:flex-end;margin-bottom:12px;}
+  .sr-clear-btn{
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--clay);
+    background:transparent;border:1px solid var(--clay);border-radius:2px;
+    padding:6px 12px;cursor:pointer;
+  }
+  .sr-clear-btn:hover{background:#fbeee9;}
+  .sr-empty{color:var(--muted);font-size:13px;text-align:center;padding:30px 0;}
+  .sr-item{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:12px 0;border-bottom:1px solid var(--line);
+  }
+  .sr-item:last-child{border-bottom:none;}
+  .sr-item-info{flex:1;min-width:0;}
+  .sr-item-name{font-weight:600;font-size:13.5px;color:var(--moss-deep);}
+  .sr-item-meta{font-size:11.5px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:2px;}
+  .sr-item-actions{display:flex;gap:8px;flex:none;}
+  .sr-item-actions button{
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:6px 12px;
+    border-radius:2px;cursor:pointer;border:1px solid var(--line);background:var(--paper);color:var(--moss-deep);
+  }
+  .sr-item-actions button.sr-dl{border-color:var(--moss);color:var(--moss-deep);}
+  .sr-item-actions button.sr-dl:hover{background:var(--paper-2);}
+  .sr-item-actions button.sr-del{border-color:var(--clay);color:var(--clay);}
+  .sr-item-actions button.sr-del:hover{background:#fbeee9;}
+  .sr-save-note{font-size:11.5px;color:var(--muted);margin-left:auto;align-self:center;}
   @media (max-width:720px){
     .field-grid, .field-grid.cols-3, .field-grid.cols-4{grid-template-columns:1fr;margin-left:0;}
     .check-grid{grid-template-columns:1fr;margin-left:0;}
     .sec-desc, .subhead, .ben-table, .fin-table-wrap, .actions{margin-left:0;}
     section.card{padding:20px 16px;}
   }
+
+  /* ===== WORD IMPORT PANEL ===== */
+  .import-card{
+    background:var(--white);
+    border:1px solid var(--line);
+    padding:22px 28px 26px;
+  }
+  .import-head{display:flex;align-items:baseline;gap:2px;margin-bottom:4px;}
+  .import-head h2{font-size:18px;color:var(--moss-deep);margin:0;}
+  .import-desc{color:var(--muted);font-size:13px;margin:4px 0 16px 36px;max-width:720px;}
+  .dropzone{
+    margin-left:36px;
+    border:2px dashed var(--line);
+    border-radius:var(--radius);
+    background:var(--paper);
+    padding:26px 20px;
+    text-align:center;
+    cursor:pointer;
+    transition:border-color .15s, background .15s;
+  }
+  .dropzone:hover, .dropzone.dragover{border-color:var(--gold);background:var(--paper-2);}
+  .dropzone .dz-title{font-weight:600;color:var(--moss-deep);font-size:14px;}
+  .dropzone .dz-sub{color:var(--muted);font-size:12px;margin-top:4px;}
+  .dropzone input[type=file]{display:none;}
+  .import-status{margin:12px 0 0 36px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);}
+  .import-status.error{color:var(--clay);}
+  .import-status.ok{color:var(--moss-deep);}
+
+  .import-preview{margin:16px 36px 0;border:1px solid var(--line);}
+  .import-preview-head{
+    background:var(--moss-deep);color:#fff;padding:10px 14px;
+    font-size:12.5px;font-weight:600;display:flex;justify-content:space-between;align-items:center;
+  }
+  .import-preview-head .links{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;}
+  .import-preview-head .links a{color:#cfe0d3;cursor:pointer;text-decoration:underline;margin-left:10px;}
+  .import-row{
+    display:grid;grid-template-columns:22px 1.1fr 1.6fr;gap:10px;
+    padding:8px 14px;border-bottom:1px solid var(--line);font-size:12.5px;align-items:flex-start;
+  }
+  .import-row:last-child{border-bottom:none;}
+  .import-row:nth-child(even){background:var(--paper);}
+  .import-row input[type=checkbox]{margin-top:3px;accent-color:var(--moss);}
+  .import-row .fld{color:var(--moss-deep);font-weight:600;}
+  .import-row .fld .en{display:block;color:var(--muted);font-weight:400;font-size:11px;font-style:italic;}
+  .import-row .val{color:var(--ink);white-space:pre-wrap;word-break:break-word;}
+  .import-row .val .warn{color:var(--clay);font-size:11px;display:block;margin-top:2px;}
+  .import-note{
+    margin:10px 36px 0;padding:10px 14px;background:#fbf3e4;border:1px solid var(--gold);
+    border-radius:var(--radius);color:#6b5320;font-size:12px;line-height:1.6;
+  }
+  .import-actions{margin:14px 36px 0;display:flex;gap:10px;}
 </style>
 </head>
 <body>
+
+<button class="saved-reports-btn" onclick="openSavedReportsModal()">📁 Saved Reports <span class="count" id="srCount">0</span></button>
+
+<div class="sr-overlay" id="srOverlay">
+  <div class="sr-modal">
+    <div class="sr-head">
+      <h3>📁 Saved Reports / របាយការណ៍ដែលបានរក្សាទុក</h3>
+      <button class="sr-close" onclick="closeSavedReportsModal()">&times;</button>
+    </div>
+    <div class="sr-body">
+      <div class="sr-toolbar">
+        <button class="sr-clear-btn" onclick="clearAllReports()">🗑 Clear all / លុបទាំងអស់</button>
+      </div>
+      <div id="srList"></div>
+    </div>
+  </div>
+</div>
 
 <div id="formView">
   <div class="masthead">
@@ -261,6 +388,22 @@
       <span class="khmer-title">របាយការណ៍អនុវត្តន៍គម្រោងខ្នាតតូចសម្រាប់ភាពជាដៃគូ</span>
       <h1>CMP / FP Implementation Report</h1>
       <div class="sub">Fill in each section below, then generate a printable, filled report matching the original form layout — ready to save as PDF or print.</div>
+    </div>
+  </div>
+
+  <div class="app">
+    <div class="import-card" id="importCard">
+      <div class="import-head"><span class="sec-num" style="background:var(--gold);">⇪</span><h2 class="khmer">នាំចូលពីឯកសារ Word</h2></div>
+      <h2 style="margin-left:36px;font-size:15px;color:var(--muted);font-weight:400;">Import from Word Document</h2>
+      <div class="import-desc">Upload the original CMP/FP proposal (.docx). The tool reads its summary table and tries to match values to the fields below — review the preview and untick anything that looks wrong before applying.</div>
+
+      <div class="dropzone" id="dropzone" onclick="document.getElementById('wordFileInput').click()">
+        <div class="dz-title">ចុច ឬអូសឯកសារ Word មកទីនេះ / Click or drag a .docx file here</div>
+        <div class="dz-sub">.docx only — processed entirely in your browser, nothing is uploaded anywhere</div>
+        <input type="file" id="wordFileInput" accept=".docx">
+      </div>
+      <div class="import-status" id="importStatus"></div>
+      <div id="importPreviewWrap"></div>
     </div>
   </div>
 
@@ -274,7 +417,9 @@
 <div id="reportView">
   <div class="report-toolbar">
     <button class="btn" onclick="backToForm()">&larr; Back to edit</button>
+    <button class="btn primary" onclick="saveCurrentReport()">💾 Save report</button>
     <button class="btn primary" onclick="window.print()">Print / Save as PDF</button>
+    <span class="sr-save-note" id="saveNote"></span>
   </div>
   <div class="doc" id="docOutput"></div>
 </div>
@@ -480,15 +625,16 @@ const sections = [
   desc:"",
   render: () => `
     <div class="field-grid">
-      <div class="field"><label>សរុបរួម (USD) <span class="en">Grand total</span></label><input type="number" id="budget_grand"></div>
+      <div class="field"><label>សរុបរួម (USD) <span class="en">Grand total</span></label><input type="number" id="budget_grand" oninput="validateBudget()"></div>
       <div class="field"><label>ជាអក្សរ <span class="en">In words</span></label><input type="text" id="budget_grand_words"></div>
-      <div class="field"><label>ថវិកាពីអង្គការ (USD) <span class="en">WVI's budget</span></label><input type="number" id="budget_wvi"></div>
+      <div class="field"><label>ថវិកាពីអង្គការ (USD) <span class="en">WVI's budget</span></label><input type="number" id="budget_wvi" oninput="validateBudget()"></div>
       <div class="field"><label>ជាអក្សរ <span class="en">In words</span></label><input type="text" id="budget_wvi_words"></div>
-      <div class="field"><label>ថវិកាពីក្រុមផ្ទាល់ (USD) <span class="en">Group's budget</span></label><input type="number" id="budget_group"></div>
+      <div class="field"><label>ថវិកាពីក្រុមផ្ទាល់ (USD) <span class="en">Group's budget</span></label><input type="number" id="budget_group" oninput="validateBudget()"></div>
       <div class="field"><label>ជាអក្សរ <span class="en">In words</span></label><input type="text" id="budget_group_words"></div>
-      <div class="field"><label>កំលាំងពលកម្ម/សម្ភារៈ (USD) <span class="en">Labor & material converted</span></label><input type="number" id="budget_labor"></div>
+      <div class="field"><label>កំលាំងពលកម្ម/សម្ភារៈ (USD) <span class="en">Labor & material converted</span></label><input type="number" id="budget_labor" oninput="validateBudget()"></div>
       <div class="field"><label>ជាអក្សរ <span class="en">In words</span></label><input type="text" id="budget_labor_words"></div>
     </div>
+    <div id="budget_warning" class="ben-warning" style="display:none;"></div>
     <div class="subhead">ធនធាន ឬទ្រព្យសម្បត្តិរបស់ក្រុម / Group Assets</div>
     <div class="field-grid">
       <div class="field"><label>ជាសាច់ប្រាក់ (USD) <span class="en">In cash</span></label><input type="number" id="asset_cash"></div>
@@ -898,6 +1044,41 @@ function validateBeneficiaries(){
 }
 
 /* ---------------------------------------------------------
+   BUDGET VALIDATION
+   - Grand total must equal WVI's budget + Group's budget + Labor/material.
+   - Flags budget_grand as invalid and shows a warning if they don't match.
+--------------------------------------------------------- */
+function validateBudget(){
+  const num = id => parseFloat(v(id)) || 0;
+  const grand = num('budget_grand');
+  const wvi = num('budget_wvi');
+  const group = num('budget_group');
+  const labor = num('budget_labor');
+  const sum = wvi + group + labor;
+
+  const mismatch = Math.abs(grand - sum) > 0.01;
+
+  const grandEl = document.getElementById('budget_grand');
+  if (grandEl) grandEl.classList.toggle('input-invalid', mismatch);
+
+  const warnBox = document.getElementById('budget_warning');
+  if (warnBox) {
+    if (mismatch) {
+      warnBox.style.display = 'block';
+      const diff = grand - sum;
+      const diffMsg = diff > 0
+        ? `(សរុបរួមលើសពីផលបូក ${diff.toFixed(2)} ដុល្លារ / grand total is OVER the sum by $${diff.toFixed(2)})`
+        : `(សរុបរួមខ្វះពីផលបូក ${Math.abs(diff).toFixed(2)} ដុល្លារ / grand total is UNDER the sum by $${Math.abs(diff).toFixed(2)})`;
+      warnBox.innerHTML = `⚠ សរុបរួម (Grand total = $${grand.toFixed(2)}) ត្រូវតែស្មើនឹង ថវិកាអង្គការ + ថវិកាក្រុម + កំលាំងពលកម្ម/សម្ភារៈ (= $${sum.toFixed(2)}) ${diffMsg}`;
+    } else {
+      warnBox.style.display = 'none';
+      warnBox.innerHTML = '';
+    }
+  }
+  return !mismatch;
+}
+
+/* ---------------------------------------------------------
    AUTO DATE-RANGE CALCULATION (Length of Implementation)
    Fills "Number of days" from Starting date + To date (inclusive of both days),
    and shows a small "X years Y months Z days" hint.
@@ -1151,6 +1332,516 @@ function backToForm(){
   document.getElementById('reportView').classList.remove('show');
   window.scrollTo(0,0);
 }
+
+/* ---------------------------------------------------------
+   SAVED REPORTS (persistent storage — personal, per-user)
+   Index key: 'reports_index'  -> JSON array of {id, name, meta, savedAt}
+   Data key:  'report:<id>'    -> JSON {html} (standalone printable doc)
+--------------------------------------------------------- */
+const SR_DOC_CSS = `
+  body{margin:0;font-family:'Khmer OS Siemreap','Battambang',serif;background:#fff;color:#111;}
+  .doc{max-width:900px;margin:0 auto;padding:36px 44px;font-size:12.5px;color:#111;}
+  .doc table{width:100%;border-collapse:collapse;margin-bottom:14px;}
+  .doc table, .doc th, .doc td{border:1px solid #333;}
+  .doc td, .doc th{padding:6px 8px;vertical-align:top;}
+  .doc .doctitle{text-align:center;font-weight:700;font-size:15px;text-decoration:underline;margin-bottom:14px;}
+  .doc .updatedline{text-align:right;font-size:10.5px;font-style:italic;margin-bottom:4px;}
+  .doc .sect-title{font-weight:700;text-decoration:underline;margin:18px 0 8px;font-size:13px;}
+  .doc .labelcell{font-weight:700;background:#f4f4f0;width:26%;}
+  .doc .filled{font-weight:600;color:#14321f;border-bottom:1px dotted #999;padding:0 2px;}
+  .doc .empty-dots{color:#888;}
+  .doc .q{font-weight:700;margin-top:14px;}
+  .doc .a{border-bottom:1px solid #999;min-height:60px;margin-top:4px;padding:6px 2px;white-space:pre-wrap;}
+  .doc .checkline{margin:2px 0;}
+  .doc .checkmark{font-weight:700;}
+  .doc .page-break{page-break-before:always;}
+  .doc .sig-grid{display:flex;justify-content:space-between;margin-top:30px;font-size:12px;}
+  .doc .footline{text-align:center;font-size:10px;color:#555;margin-top:26px;border-top:1px solid #ccc;padding-top:6px;}
+  @media print{ .doc{padding:0;max-width:100%;} }
+`;
+
+async function getReportsIndex(){
+  try{
+    const res = await window.storage.get('reports_index', false);
+    if (!res || !res.value) return [];
+    const arr = JSON.parse(res.value);
+    return Array.isArray(arr) ? arr : [];
+  }catch(e){
+    return [];
+  }
+}
+
+async function setReportsIndex(arr){
+  try{
+    await window.storage.set('reports_index', JSON.stringify(arr), false);
+  }catch(e){
+    console.error('Failed to save reports index', e);
+  }
+}
+
+function srBuildStandaloneHtml(innerHtml, title){
+  return `<!DOCTYPE html><html lang="km"><head><meta charset="UTF-8">
+<title>${escapeHtml(title)}</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>${SR_DOC_CSS}</style></head><body><div class="doc">${innerHtml}</div></body></html>`;
+}
+
+async function saveCurrentReport(){
+  const note = document.getElementById('saveNote');
+  const docOutput = document.getElementById('docOutput');
+  if (!docOutput || !docOutput.innerHTML.trim()){
+    if (note){ note.textContent = 'Generate a report first.'; }
+    return;
+  }
+  const groupName = v('groupName') || 'Untitled group';
+  const cmpFp = v('cmpFpName') || '';
+  const now = new Date();
+  const savedAt = now.toISOString();
+  const displayDate = now.toLocaleString();
+  const id = 'r_' + now.getTime();
+  const name = groupName + (cmpFp ? ' — ' + cmpFp : '');
+  const standaloneHtml = srBuildStandaloneHtml(docOutput.innerHTML, name);
+
+  try{
+    const ok = await window.storage.set('report:' + id, JSON.stringify({ html: standaloneHtml }), false);
+    if (!ok){ throw new Error('storage set returned null'); }
+    const idx = await getReportsIndex();
+    idx.unshift({ id, name, savedAt, displayDate });
+    await setReportsIndex(idx);
+    if (note){ note.textContent = '✓ Saved'; setTimeout(()=>{ if(note) note.textContent=''; }, 2500); }
+    updateSavedReportsBadge();
+  }catch(e){
+    console.error('Save report failed', e);
+    if (note){ note.textContent = 'Save failed — please try again.'; }
+  }
+}
+
+async function updateSavedReportsBadge(){
+  const idx = await getReportsIndex();
+  const el = document.getElementById('srCount');
+  if (el) el.textContent = idx.length;
+}
+
+async function renderSavedReportsList(){
+  const listEl = document.getElementById('srList');
+  if (!listEl) return;
+  const idx = await getReportsIndex();
+  if (!idx.length){
+    listEl.innerHTML = '<div class="sr-empty">No saved reports yet. Generate a report, then click "💾 Save report".</div>';
+    return;
+  }
+  listEl.innerHTML = idx.map(item => `
+    <div class="sr-item">
+      <div class="sr-item-info">
+        <div class="sr-item-name">${escapeHtml(item.name || 'Untitled report')}</div>
+        <div class="sr-item-meta">Saved: ${escapeHtml(item.displayDate || item.savedAt || '')}</div>
+      </div>
+      <div class="sr-item-actions">
+        <button class="sr-dl" onclick="downloadReport('${item.id}')">⬇ Download</button>
+        <button class="sr-del" onclick="deleteReport('${item.id}')">✕ Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function downloadReport(id){
+  try{
+    const res = await window.storage.get('report:' + id, false);
+    if (!res || !res.value){ alert('Could not find that saved report.'); return; }
+    const data = JSON.parse(res.value);
+    const idx = await getReportsIndex();
+    const item = idx.find(x => x.id === id);
+    const filename = (item && item.name ? item.name : 'report').replace(/[^a-zA-Z0-9_\- ]/g,'').trim().replace(/\s+/g,'_') || 'report';
+    const blob = new Blob([data.html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename + '.html';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }catch(e){
+    console.error('Download failed', e);
+    alert('Download failed — please try again.');
+  }
+}
+
+async function deleteReport(id){
+  if (!confirm('Delete this saved report? This cannot be undone.')) return;
+  try{
+    await window.storage.delete('report:' + id, false);
+  }catch(e){ /* key may already be gone */ }
+  const idx = await getReportsIndex();
+  await setReportsIndex(idx.filter(x => x.id !== id));
+  await renderSavedReportsList();
+  await updateSavedReportsBadge();
+}
+
+async function clearAllReports(){
+  const idx = await getReportsIndex();
+  if (!idx.length) return;
+  if (!confirm(`Clear all ${idx.length} saved report(s)? This cannot be undone.`)) return;
+  for (const item of idx){
+    try{ await window.storage.delete('report:' + item.id, false); }catch(e){}
+  }
+  await setReportsIndex([]);
+  await renderSavedReportsList();
+  await updateSavedReportsBadge();
+}
+
+function openSavedReportsModal(){
+  document.getElementById('srOverlay').classList.add('show');
+  renderSavedReportsList();
+}
+
+function closeSavedReportsModal(){
+  document.getElementById('srOverlay').classList.remove('show');
+}
+
+document.getElementById('srOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'srOverlay') closeSavedReportsModal();
+});
+
+updateSavedReportsBadge();
+
+
+/* ---------------------------------------------------------
+   WORD DOCUMENT IMPORT
+   Reads the original CMP/FP .docx proposal entirely in the browser
+   (via mammoth.js), pulls values out of its summary table (and, where
+   possible, its financial activity table), and offers them up as a
+   checkable preview before writing anything into the form.
+--------------------------------------------------------- */
+(function(){
+  const KHMER_MONTHS = {'មករា':1,'កុម្ភៈ':2,'មីនា':3,'មេសា':4,'ឧសភា':5,'មិថុនា':6,'កក្កដា':7,'សីហា':8,'កញ្ញា':9,'តុលា':10,'វិច្ឆិកា':11,'ធ្នូ':12};
+  const DIGIT_MAP = {'០':'0','១':'1','២':'2','៣':'3','៤':'4','៥':'5','៦':'6','៧':'7','៨':'8','៩':'9'};
+  const CURR_WARN = 'ត្រូវពិនិត្យរូបិយប័ណ្ណ — ប្រភពអាចជារៀល មិនមែនដុល្លារ / Verify currency — source may be Riel, not USD';
+  const NUM_RE = /\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?/;
+  const NUM_RE_G = /\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?/g;
+
+  function toArabic(str){ return (str||'').replace(/[០-៩]/g, ch => DIGIT_MAP[ch]); }
+  function cellText(td){ return toArabic((td.textContent||'').replace(/\s+/g,' ').trim()); }
+  function firstNumber(text){
+    const m = (text||'').match(NUM_RE);
+    return m ? parseFloat(m[0].replace(/,/g,'')) : null;
+  }
+  function numbersAfter(text, keyword, count){
+    const idx = (text||'').indexOf(keyword);
+    if (idx === -1) return [];
+    const rest = text.slice(idx + keyword.length);
+    const nums = rest.match(NUM_RE_G) || [];
+    return nums.slice(0, count || 2).map(n => parseFloat(n.replace(/,/g,'')));
+  }
+  function setValue(id, value){
+    const el = document.getElementById(id);
+    if (!el || value === null || value === undefined || value === '') return false;
+    el.value = value;
+    el.dispatchEvent(new Event('input', {bubbles:true}));
+    el.dispatchEvent(new Event('change', {bubbles:true}));
+    return true;
+  }
+
+  let importedFields = [];
+  let importedFinRows = [];
+
+  function addField(id, labelKm, labelEn, value, display, applyFn, warn){
+    if (value === null || value === undefined || value === '') return;
+    importedFields.push({id, labelKm, labelEn, value, display: display !== undefined ? display : value, apply: applyFn, warn});
+  }
+
+  function extractSummary(table){
+    importedFields = [];
+    const rows = Array.from(table.querySelectorAll('tr')).map(tr =>
+      Array.from(tr.querySelectorAll('td,th')).map(cellText)
+    );
+
+    rows.forEach(cells => {
+      if (!cells.length) return;
+      const c0 = cells[0] || '';
+
+      if (c0.includes('ក្រុមឈ្មោះ')) {
+        const name = cells[1];
+        if (name) addField('groupName','ឈ្មោះក្រុម','Group Name', name, name, v=>setValue('groupName', v));
+        const memText = cells[2] || '';
+        const total = numbersAfter(memText, 'ក្រុមៈ', 1)[0];
+        const female = numbersAfter(memText, 'ស្រីៈ', 1)[0];
+        if (total != null) addField('memTotal','សមាជិកសរុប','Members — Total', total, total, v=>setValue('memTotal', v));
+        if (female != null) addField('memFemale','សមាជិកស្រី','Members — Female', female, female, v=>setValue('memFemale', v));
+      }
+
+      else if (c0 === 'ឈ្មោះគម្រោង') {
+        const val = cells[1];
+        if (val) addField('cmpFpName','ឈ្មោះគម្រោង','Name of CMP/FP', val, val, v=>setValue('cmpFpName', v));
+      }
+
+      else if (c0.includes('វត្ថុបំណង')) {
+        const val = cells[1];
+        if (val) addField('objectives','វត្ថុបំណងគម្រោង','Objectives', val, val, v=>setValue('objectives', v));
+      }
+
+      else if (c0.includes('ទីកន្លែងអនុវត្ត')) {
+        const val = cells[1];
+        if (val) {
+          addField('targetLocations','ទីកន្លែងអនុវត្តគម្រោង','Target Locations', val, val, v=>setValue('targetLocations', v));
+          const vMatch = val.match(/ភូមិ([^\s)]+)/);
+          const cMatch = val.match(/ឃុំ([^\s)]+)/);
+          if (/ខេត្ត|ស្រុក|ឃុំ|ភូមិ/.test(val)) {
+            addField('province','ខេត្ត','Province', 'existing', 'auto-select existing province option', ()=>{
+              const sel = document.getElementById('province');
+              if (sel && sel.options.length) setValue('province', sel.options[0].value);
+            });
+            addField('district','ស្រុក','District', 'existing', 'auto-select existing district option', ()=>{
+              const sel = document.getElementById('district');
+              if (sel && sel.options.length) setValue('district', sel.options[0].value);
+            });
+          }
+          if (cMatch) {
+            const communeSel = document.getElementById('commune');
+            const opt = communeSel && Array.from(communeSel.options).find(o => o.value === cMatch[1]);
+            if (opt) {
+              addField('commune','ឃុំ','Commune', cMatch[1], cMatch[1], v=>setValue('commune', v));
+              if (vMatch) {
+                addField('village','ភូមិ','Village', vMatch[1], vMatch[1], v=>{
+                  if (typeof updateVillageOptions === 'function') updateVillageOptions();
+                  setValue('village', v);
+                });
+              }
+            }
+          }
+        }
+      }
+
+      else if (c0.includes('បទពិសោធន៍ធ្វើជាដៃគូ')) {
+        const yearsRaw = firstNumber(cells[1] || '');
+        const fromYearFull = firstNumber(cells[2] || '');
+        const roundMatch = (cells[3] || '').match(/[12]/);
+        if (yearsRaw != null) addField('yearsPartnership','ចំនួនឆ្នាំបទពិសោធន៍ (សម្រាប់ព័ត៌មាន)','Years of partnership (info only — auto-calculated)', yearsRaw, yearsRaw + ' ឆ្នាំ', ()=>{});
+        if (fromYearFull != null) {
+          const y2 = String(Math.round(fromYearFull)).slice(-2);
+          addField('fromYear','ចាប់គិតពីឆ្នាំ','From year', y2, '20'+y2, v=>setValue('fromYear', v));
+        }
+        if (roundMatch) addField('roundOfProject','គម្រោងស្នើសុំលើកទី','Round of project', roundMatch[0], 'លើកទី ' + roundMatch[0], v=>setValue('roundOfProject', v === '1' ? '១' : '២'));
+      }
+
+      else if (cells.some(c => c === 'ផ្ទាល់៖')) {
+        const idx = cells.indexOf('ផ្ទាល់៖');
+        const text = cells[idx+1] || cells[cells.length-1] || '';
+        const total = firstNumber(text);
+        const female = numbersAfter(text, 'ស្រីចំនួន', 1)[0];
+        const [childTotal, childGirl] = numbersAfter(text, 'កុមារចំនួន', 2);
+        const [rc, rcGirl] = numbersAfter(text, 'ទំនុកបម្រុង', 2);
+        const [mvc, mvcGirl] = numbersAfter(text, 'ងាយរងគ្រោះ', 2);
+        if (total != null) addField('ben_total','អ្នកទទួលផល សរុប','Beneficiaries — Total', total, total, v=>setValue('ben_total', v));
+        if (female != null) addField('ben_female','អ្នកទទួលផល ស្រី','Beneficiaries — Female', female, female, v=>setValue('ben_female', v));
+        if (childTotal != null) addField('ben_children','កុមារ','Children', childTotal, childTotal, v=>setValue('ben_children', v));
+        if (childGirl != null) addField('ben_girl','កុមារី','Girls', childGirl, childGirl, v=>setValue('ben_girl', v));
+        if (rc != null) addField('ben_rc','កុមារទំនុកបម្រុង','RC', rc, rc, v=>setValue('ben_rc', v));
+        if (rcGirl != null) addField('ben_rc_girl','កុមារទំនុកបម្រុង ស្រី','RC (Girl)', rcGirl, rcGirl, v=>setValue('ben_rc_girl', v));
+        if (mvc != null) addField('ben_mvc','កុមារងាយរងគ្រោះ','MVC', mvc, mvc, v=>setValue('ben_mvc', v));
+        if (mvcGirl != null) addField('ben_mvc_girl','កុមារងាយរងគ្រោះ ស្រី','MVC (Girl)', mvcGirl, mvcGirl, v=>setValue('ben_mvc_girl', v));
+      }
+
+      else if (c0.includes('រយៈពេលអនុវត្តគម្រោង')) {
+        const text = cells[1] || '';
+        const monthAlt = Object.keys(KHMER_MONTHS).join('|');
+        const dateRe = new RegExp('ថ្ងៃទី\\s*(\\d+)\\s*ខែ\\s*(' + monthAlt + ')\\s*ឆ្នាំ\\s*(\\d{2,4})', 'g');
+        const matches = [...text.matchAll(dateRe)];
+        if (matches[0]) {
+          const [, d, mName, y] = matches[0];
+          const yy = String(y).slice(-2);
+          addField('act_start_d','ថ្ងៃចាប់ផ្ដើម (ថ្ងៃ)','Actual start — day', d, d, v=>setValue('act_start_d', v));
+          addField('act_start_m','ថ្ងៃចាប់ផ្ដើម (ខែ)','Actual start — month', KHMER_MONTHS[mName], KHMER_MONTHS[mName] + ' (' + mName + ')', v=>setValue('act_start_m', v));
+          addField('act_start_y','ថ្ងៃចាប់ផ្ដើម (ឆ្នាំ)','Actual start — year', yy, '20' + yy, v=>setValue('act_start_y', v));
+        }
+        if (matches[1]) {
+          const [, d, mName, y] = matches[1];
+          const yy = String(y).slice(-2);
+          addField('act_end_d','ថ្ងៃបញ្ចប់ (ថ្ងៃ)','Actual end — day', d, d, v=>setValue('act_end_d', v));
+          addField('act_end_m','ថ្ងៃបញ្ចប់ (ខែ)','Actual end — month', KHMER_MONTHS[mName], KHMER_MONTHS[mName] + ' (' + mName + ')', v=>setValue('act_end_m', v));
+          addField('act_end_y','ថ្ងៃបញ្ចប់ (ឆ្នាំ)','Actual end — year', yy, '20' + yy, v=>setValue('act_end_y', v));
+        }
+      }
+
+      else if (c0.includes('ចំនួនថវិកាសរុប')) {
+        const text = cells.slice(1).join(' ');
+        const grand = firstNumber(text);
+        const wvi = numbersAfter(text, 'WVI', 1)[0];
+        const groupCash = numbersAfter(text, 'ជាសាច់ប្រាក់', 1)[0];
+        const labor = numbersAfter(text, 'កំលាំងពលកម្ម', 1)[0];
+        if (grand != null) addField('budget_grand','សរុបរួម','Grand total', grand, grand.toLocaleString(), v=>setValue('budget_grand', v), CURR_WARN);
+        if (wvi != null) addField('budget_wvi','ថវិកាពីអង្គការ','WVI budget', wvi, wvi.toLocaleString(), v=>setValue('budget_wvi', v), CURR_WARN);
+        if (groupCash != null) addField('budget_group','ថវិកាពីក្រុម','Group budget (cash)', groupCash, groupCash.toLocaleString(), v=>setValue('budget_group', v), CURR_WARN);
+        if (labor != null) addField('budget_labor','កំលាំងពលកម្ម/សម្ភារៈ','Labor & material', labor, labor.toLocaleString(), v=>setValue('budget_labor', v), CURR_WARN);
+      }
+
+      else if (c0.includes('ធនធាន ឬទ្រព្យសម្បត្តិ')) {
+        const text = cells[1] || '';
+        const cash = firstNumber(text.split('រៀល')[0]);
+        const material = numbersAfter(text, 'ស្មើ', 1)[0];
+        if (cash != null) addField('asset_cash','ជាសាច់ប្រាក់','Assets — cash', cash, cash.toLocaleString(), v=>setValue('asset_cash', v), CURR_WARN);
+        if (material != null) addField('asset_material','សម្ភារៈប៉ាន់ប្រមាណ','Assets — material', material, material.toLocaleString(), v=>setValue('asset_material', v), CURR_WARN);
+      }
+    });
+
+    return importedFields;
+  }
+
+  function extractFinancialRows(tables){
+    importedFinRows = [];
+    tables.forEach(table => {
+      Array.from(table.querySelectorAll('tr')).forEach(tr => {
+        const cells = Array.from(tr.querySelectorAll('td,th')).map(cellText);
+        if (cells.length < 3) return;
+        if (cells.some(c => c.includes('សរុបទឹកប្រាក់'))) return;
+        if (cells.some(c => c.includes('សកម្មភាពអនុវត្ត') || c.includes('លទ្ធផលដែលចង់បាន'))) return;
+
+        const candDescs = cells.slice(0, 2).filter(c => /[\u1780-\u17FF]/.test(c) && !/^\d+$/.test(c));
+        const desc = candDescs.sort((a, b) => b.length - a.length)[0];
+        if (!desc) return;
+
+        const numericCells = cells.filter(c => NUM_RE.test(c) && !/[\u1780-\u17FF]/.test(c) && !/-/.test(c));
+        if (!numericCells.length) return;
+        const amount = firstNumber(numericCells[numericCells.length - 1]);
+        if (amount == null || amount <= 0) return;
+
+        importedFinRows.push({desc, amount});
+      });
+    });
+    return importedFinRows;
+  }
+
+  function renderPreview(){
+    const wrap = document.getElementById('importPreviewWrap');
+    if (!importedFields.length && !importedFinRows.length) { wrap.innerHTML = ''; return; }
+
+    let html = '<div class="import-preview">';
+    html += '<div class="import-preview-head"><span>រកឃើញទិន្នន័យ ' + importedFields.length + ' វាល / ' + importedFields.length + ' fields matched — untick anything wrong</span>'
+      + '<span class="links"><a onclick="WordImport.selectAll(true)">ជ្រើសទាំងអស់ / All</a><a onclick="WordImport.selectAll(false)">មិនជ្រើស / None</a></span></div>';
+    importedFields.forEach((f, i) => {
+      html += '<div class="import-row">'
+        + '<input type="checkbox" id="imp_chk_' + i + '" checked>'
+        + '<div class="fld">' + f.labelKm + '<span class="en">' + f.labelEn + ' · <code>' + f.id + '</code></span></div>'
+        + '<div class="val">' + escapeHtml(String(f.display)) + (f.warn ? '<span class="warn">⚠ ' + f.warn + '</span>' : '') + '</div>'
+        + '</div>';
+    });
+    html += '</div>';
+
+    if (importedFinRows.length) {
+      html += '<div class="import-note"><label style="display:flex;gap:8px;align-items:flex-start;">'
+        + '<input type="checkbox" id="imp_finrows_chk" checked style="margin-top:3px;">'
+        + '<span>ក៏បានរកឃើញ ' + importedFinRows.length + ' សកម្មភាពពីតារាងផែនការហិរញ្ញវត្ថុ (ជំហានទី ២) — នឹងបន្ថែមទៅជាជួរថ្មីនៅផ្នែក "របាយការណ៍ហិរញ្ញវត្ថុ" ដោយដាក់ចំនួនទឹកប្រាក់ក្នុងជួរ "ថវិកា" (សូមផ្ទៀងផ្ទាត់ម្ដងទៀត ព្រោះកម្មវិធីមិនអាចញែកបានច្បាស់រវាងសាច់ប្រាក់ និងកម្លាំងពលកម្ម)។'
+        + '<br>Also found ' + importedFinRows.length + ' activity line items in the financial plan table (Step 2) — these will be appended as new rows in the Financial Report section under "Budgeted". Please double-check each amount and split between cash / labor as needed.</span></label></div>';
+    }
+
+    html += '<div class="import-actions">'
+      + '<button class="btn primary" onclick="WordImport.applyAll()">✓ បញ្ចូលទិន្នន័យដែលបានជ្រើស / Apply selected</button>'
+      + '<button class="btn clay" onclick="WordImport.clearPreview()">បោះបង់ / Discard</button>'
+      + '</div>';
+
+    wrap.innerHTML = html;
+  }
+
+  function selectAll(state){
+    importedFields.forEach((f, i) => { const el = document.getElementById('imp_chk_' + i); if (el) el.checked = state; });
+  }
+
+  function clearPreview(){
+    importedFields = [];
+    importedFinRows = [];
+    document.getElementById('importPreviewWrap').innerHTML = '';
+    document.getElementById('importStatus').textContent = '';
+    document.getElementById('wordFileInput').value = '';
+  }
+
+  function applyAll(){
+    let count = 0;
+    importedFields.forEach((f, i) => {
+      const chk = document.getElementById('imp_chk_' + i);
+      if (chk && chk.checked) { f.apply(f.value); count++; }
+    });
+
+    const finChk = document.getElementById('imp_finrows_chk');
+    if (finChk && finChk.checked && importedFinRows.length) {
+      importedFinRows.forEach(row => {
+        addFinRow();
+        const i = finRowCounter;
+        setValue('fin_desc_' + i, row.desc);
+        setValue('fin_budget_' + i, row.amount);
+      });
+      if (typeof recalcFin === 'function') recalcFin();
+    }
+
+    const status = document.getElementById('importStatus');
+    status.className = 'import-status ok';
+    status.textContent = '✓ បានបញ្ចូលទិន្នន័យ ' + count + ' វាល ចូលទៅក្នុងទម្រង់ / Applied ' + count + ' fields to the form — scroll down to check them';
+    document.getElementById('importPreviewWrap').innerHTML = '';
+    importedFields = [];
+    importedFinRows = [];
+    document.getElementById('wordFileInput').value = '';
+  }
+
+  async function handleFile(file){
+    const status = document.getElementById('importStatus');
+    document.getElementById('importPreviewWrap').innerHTML = '';
+    if (!file) return;
+    if (!/\.docx$/i.test(file.name)) {
+      status.className = 'import-status error';
+      status.textContent = '⚠ សូមជ្រើសឯកសារ .docx / Please choose a .docx file';
+      return;
+    }
+    if (typeof mammoth === 'undefined') {
+      status.className = 'import-status error';
+      status.textContent = '⚠ មិនអាចផ្ទុកកម្មវិធីអានឯកសារ Word បានទេ (ត្រូវការអ៊ីនធឺណិត) / Could not load the Word-reading library (needs internet access)';
+      return;
+    }
+    status.className = 'import-status';
+    status.textContent = 'កំពុងអានឯកសារ... / Reading document...';
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const result = await mammoth.convertToHtml({arrayBuffer});
+      const container = document.createElement('div');
+      container.innerHTML = result.value;
+      const tables = Array.from(container.querySelectorAll('table'));
+      if (!tables.length) {
+        status.className = 'import-status error';
+        status.textContent = '⚠ រកមិនឃើញតារាងក្នុងឯកសារនេះទេ / No tables found in this document';
+        return;
+      }
+      // The summary table is identified by content (its position among tables
+      // varies — some documents have a small cover/type table before it).
+      const summaryTable = tables.find(t => (t.textContent || '').includes('ក្រុមឈ្មោះ')) || tables[0];
+      const otherTables = tables.filter(t => t !== summaryTable);
+      extractSummary(summaryTable);
+      extractFinancialRows(otherTables);
+      if (!importedFields.length && !importedFinRows.length) {
+        status.className = 'import-status error';
+        status.textContent = '⚠ រកមិនឃើញទិន្នន័យដែលអាចផ្គូផ្គងបានទេ — សូមបំពេញដោយដៃ / No matching data could be found — please fill in manually';
+        return;
+      }
+      status.className = 'import-status ok';
+      status.textContent = '✓ បានអានឯកសារ "' + file.name + '" ជោគជ័យ — សូមពិនិត្យខាងក្រោម / Read "' + file.name + '" successfully — review below';
+      renderPreview();
+    } catch (err) {
+      console.error(err);
+      status.className = 'import-status error';
+      status.textContent = '⚠ មានបញ្ហាក្នុងការអានឯកសារ / Error reading the document: ' + err.message;
+    }
+  }
+
+  const fileInput = document.getElementById('wordFileInput');
+  const dropzone = document.getElementById('dropzone');
+  fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    if (e.dataTransfer.files && e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+
+  window.WordImport = { selectAll, clearPreview, applyAll };
+})();
 </script>
 </body>
 </html>
